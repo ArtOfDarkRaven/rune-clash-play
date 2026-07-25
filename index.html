@@ -4000,18 +4000,35 @@ let packSerials = [];    // bu kopyaların seri numaraları
 let packStage = 'closed';
 let packIntro = false;
 let haul = [];           // seri boyunca toplanan her şey: {c, s}
+let packSeriNo = 0;      // bu seride kaçıncı paket açılıyor
+let packSeriToplam = 0;  // seride toplam kaç paket var
 
-function enterPack(intro = false) {
+/**
+ * @param intro  başlangıç serisi mi
+ * @param devam  aynı serinin SONRAKİ paketi mi — ganimet sıfırlanmasın diye
+ */
+function enterPack(intro = false, devam = false) {
   const nth = INTRO_PACKS - SAVE.introLeft + 1;
   packIntro = intro;
   packCards = rollPack({ first: intro && nth === 1, fresh: intro });
   packSerials = [];
   packStage = 'closed';
-  if (!intro) haul = [];
+
+  if (!intro) {
+    if (devam) {
+      packSeriNo++;
+    } else {
+      // Yeni seri: ganimeti sıfırla ve kaç paket açılacağını say.
+      // SAVE.packs bu noktada zaten bir azaltılmış oldu (açılan bu paket).
+      haul = [];
+      packSeriNo = 1;
+      packSeriToplam = 1 + SAVE.packs;
+    }
+  }
 
   $('#packHead').textContent = intro
     ? `Başlangıç paketi · ${nth}/${INTRO_PACKS}`
-    : 'Yeni paket';
+    : packSeriToplam > 1 ? `Paket · ${packSeriNo}/${packSeriToplam}` : 'Yeni paket';
   $('#packCards').innerHTML = '';
   $('#packBtn').textContent = 'PAKETİ AÇ';
   $('#packBtn').disabled = false;
@@ -4106,7 +4123,8 @@ async function tearPack() {
   packStage = 'done';
   $('#packBtn').disabled = false;
   $('#packBtn').classList.remove('yazisiz');
-  $('#packBtn').textContent = packIntro && SAVE.introLeft > 1 ? 'SONRAKİ PAKET' : 'DEVAM';
+  const sonraki = packIntro ? SAVE.introLeft > 1 : SAVE.packs > 0;
+  $('#packBtn').textContent = sonraki ? 'SONRAKİ PAKET' : 'DEVAM';
 }
 
 /**
@@ -4197,6 +4215,15 @@ async function finishPack() {
     for (const c of packCards) if (deck.length < 3 && !deck.includes(c.id)) deck.push(c.id);
     SAVE.deck = deck;
     persist();
+
+    // Elde paket kaldıysa arka arkaya aç — başlangıç serisiyle aynı akış.
+    // Önce her paket için lobiye dönülüyordu; iki paket alan oyuncu ikincisini
+    // ayrıca "Paket Aç"a basarak açmak zorunda kalıyordu.
+    if (SAVE.packs > 0) {
+      SAVE.packs--;
+      persist();
+      return enterPack(false, true);
+    }
   }
 
   // Tek paket zaten tek sayfada duruyor; özet ekranı ancak birden fazlaysa anlamlı.
@@ -4545,7 +4572,7 @@ function rankIcon(tier, boy = '1em') {
 
 // Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
 // sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
-const BUILD = 31;
+const BUILD = 32;
 
 const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
 
