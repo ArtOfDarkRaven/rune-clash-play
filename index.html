@@ -1,0 +1,4964 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c0b12">
+<title>Rune Clash</title>
+<style>
+:root {
+  --bg:        #0c0b12;
+  --panel:     #17151f;
+  --panel-2:   #1f1c2b;
+  --line:      #2c2839;
+  --text:      #ece8f4;
+  --muted:     #8a83a0;
+  --gold:      #d9c07a;
+
+  /* Altı element, altı ayrı renk ailesi. Rüzgar bilerek doygunluğu düşük
+     (havadar dursun), Kadim mor — nadirlik moruna yakın ama o sadece
+     minik noktalarda kullanılıyor, karışmıyor. */
+  --fire:   #ff7a45;
+  --ice:    #4dd8e8;
+  --bolt:   #ffd049;
+  --nature: #5fd07a;
+  --wind:   #cdd6ea;
+  --arcane: #b478ff;
+
+  --gap: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(120% 60% at 50% -10%, #241f3a 0%, transparent 60%),
+    radial-gradient(90% 45% at 50% 108%, #1c2233 0%, transparent 62%);
+  color: var(--text);
+  font: 500 15px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* ---------- ekranlar ---------- */
+
+.screen {
+  display: none;
+  height: 100dvh;
+  max-width: 460px;
+  margin: 0 auto;
+  padding:
+    calc(env(safe-area-inset-top) + 8px)
+    18px
+    calc(env(safe-area-inset-bottom) + 14px);
+  flex-direction: column;
+}
+.screen.active { display: flex; animation: screenIn .3s ease; }
+@keyframes screenIn { from { opacity: 0; transform: translateY(8px); } }
+
+#scr-battle { padding-left: 14px; padding-right: 14px; position: relative; }
+
+#app {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- ortak parçalar ---------- */
+
+button.primary {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #4a3f6b;
+  background: linear-gradient(#3a3158, #272042);
+  color: var(--text);
+  font: 800 15px/1 inherit;
+  letter-spacing: .1em;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -12px #6b57b0;
+}
+button.primary:active { background: #221c39; transform: translateY(1px); }
+/* Kapalı hâlin görünümü yoktu — devre dışı tuş açık olanla aynı duruyordu. */
+button.primary:disabled {
+  background: #1c1828;
+  border-color: #2c2839;
+  color: var(--muted);
+  box-shadow: none;
+  cursor: default;
+}
+button.primary:disabled:active { transform: none; background: #1c1828; }
+
+button.ghost {
+  width: 100%;
+  padding: 13px;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--muted);
+  font: 600 14px/1 inherit;
+  cursor: pointer;
+}
+button.ghost:active { background: var(--panel); }
+
+.avatar {
+  width: 44px; height: 44px;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  font-weight: 800;
+  color: #0e0d15;
+  background: linear-gradient(140deg, var(--c, #7d6bb5), color-mix(in srgb, var(--c, #7d6bb5) 55%, #fff));
+}
+.avatar.sm { width: 26px; height: 26px; border-radius: 8px; font-size: 12px; }
+
+.pinfo { min-width: 0; }
+.pname {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pmeta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.rank { color: var(--gold); font-weight: 700; }
+
+.section-label {
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 0 0 8px 2px;
+}
+
+/* ---------- açılış ---------- */
+
+#scr-loading { align-items: center; justify-content: center; }
+
+.load-stage {
+  position: relative;
+  width: 210px; height: 210px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 26px;
+}
+
+.load-mark {
+  width: 82px; height: 82px;
+  color: var(--gold);
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--gold) 55%, transparent));
+  animation: markIn 1s cubic-bezier(.2,1.1,.35,1) .55s both, breathe 3.4s ease-in-out 1.6s infinite;
+}
+.load-mark svg { width: 100%; height: 100%; }
+@keyframes markIn {
+  from { opacity: 0; transform: scale(.3) rotate(-45deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* dört element içeri doğru sarmalanıp amblemde birleşiyor */
+.load-orb {
+  position: absolute;
+  width: 30px; height: 30px;
+  color: var(--c);
+  filter: drop-shadow(0 0 8px var(--c));
+  animation: orbIn 1.5s cubic-bezier(.4,0,.3,1) both;
+}
+.load-orb svg { width: 100%; height: 100%; }
+.load-orb:nth-child(1) { --a:  -90deg; animation-delay: 0s;   }
+.load-orb:nth-child(2) { --a:  -30deg; animation-delay: .10s; }
+.load-orb:nth-child(3) { --a:   30deg; animation-delay: .20s; }
+.load-orb:nth-child(4) { --a:   90deg; animation-delay: .30s; }
+.load-orb:nth-child(5) { --a:  150deg; animation-delay: .40s; }
+.load-orb:nth-child(6) { --a:  210deg; animation-delay: .50s; }
+@keyframes orbIn {
+  0%   { opacity: 0; transform: rotate(var(--a)) translateX(150px) rotate(calc(-1 * var(--a))) scale(1.2); }
+  30%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(calc(var(--a) + 160deg)) translateX(0) rotate(calc(-1 * var(--a))) scale(.3); }
+}
+
+.load-title {
+  font-size: 27px;
+  font-weight: 800;
+  animation: titleIn .9s cubic-bezier(.2,.9,.3,1) 1.15s both;
+}
+@keyframes titleIn {
+  from { opacity: 0; letter-spacing: .62em; filter: blur(5px); }
+  to   { opacity: 1; letter-spacing: .2em;  filter: blur(0); }
+}
+
+.load-bar {
+  width: 150px; height: 2px;
+  margin-top: 26px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.09);
+  overflow: hidden;
+}
+.load-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, transparent, var(--gold));
+  animation: fill linear both;
+}
+@keyframes fill { to { width: 100%; } }
+
+.load-tip {
+  margin-top: 18px;
+  max-width: 280px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  animation: fadein .8s ease 2s both;
+}
+
+/* ---------- şampiyon kartı ---------- */
+
+.champ {
+  position: relative;
+  aspect-ratio: 5 / 7;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);   /* button rengi miras almıyor, açıkça vermek şart */
+  font: inherit;
+  min-width: 0;
+  perspective: 900px;
+  cursor: pointer;
+}
+.champ:active .ch-flip { transform: scale(.95); }
+
+/* çevrilme: kapalıyken arka yüz, açıkken ön yüz */
+.ch-flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform .52s cubic-bezier(.3,.9,.35,1);
+}
+.champ.sealed .ch-flip { transform: rotateY(180deg); }
+
+.ch-face, .ch-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Görsel katmanı en üstte: dosya yoksa tarayıcı o katmanı atlar ve
+   alttaki degradeler görünür. Yani "yoksa eski hâli" bedavaya geliyor. */
+.ch-back {
+  transform: rotateY(180deg);
+  display: grid;
+  place-items: center;
+  color: #6b5d3f;
+  background:
+    url('assets/card-back.png') center/cover no-repeat,
+    repeating-linear-gradient(48deg, rgba(255,255,255,.022) 0 2px, transparent 2px 7px),
+    linear-gradient(158deg, #2b2542 0%, #1d1830 46%, #14111e 100%);
+  border: 1px solid #3b3457;
+  box-shadow: inset 0 0 0 1px rgba(214,186,120,.10);
+}
+.ch-back-mark { width: 52%; }
+.ch-back-mark svg { width: 100%; height: auto; display: block; }
+
+/* --- ön yüz --- */
+
+.ch-face {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+  background:
+    radial-gradient(78% 44% at 50% 40%, color-mix(in srgb, var(--c) 26%, transparent) 0%, transparent 74%),
+    linear-gradient(162deg, color-mix(in srgb, var(--c) 13%, #17131f) 0%, #110e18 66%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--r) 26%, transparent),
+    0 3px 10px -5px #000;
+}
+
+/* Kart çerçevesi — element başına bir SVG, tools-make-frames.js üretiyor.
+   Ortası delik: sanat penceresi ve isim levhası altındaki içeriği gösteriyor.
+
+   Neden altı dosya: çerçeve background-image olarak yükleniyor, tarayıcı onu
+   ayrı bir belge sayıyor — ikonlardaki currentColor buraya geçmiyor. */
+.ch-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--frame, none) center / 100% 100% no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+.champ[data-el="fire"]   { --frame: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgNzAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgPCEtLSBmaXJlIMOnZXLDp2V2ZXNpIOKAlCB0b29scy1tYWtlLWZyYW1lcy5qcyDDvHJldHRpLCBlbGxlIGTDvHplbmxlbWUgLS0+CiAgPGRlZnM+CiAgICA8IS0tIFNhbmF0IHBlbmNlcmVzaSB2ZSBpc2ltIGxldmhhc8SxIERFTMSwSzogYWx0bGFyxLFuZGFraSDFn2FtcGl5b24KICAgICAgICAgZ8O2cnNlbGksIGVsZW1lbnQgxLHFn8SxbWFzxLEgdmUgeWF6xLEgZ8O2csO8bm1leWUgZGV2YW0gZXRzaW4uIC0tPgogICAgPG1hc2sgaWQ9ImhvbGVzIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSIwIiB5PSIwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNzAwIiByeD0iMjYiIGZpbGw9IiNmZmYiLz4KICAgICAgPHJlY3QgeD0iNTMiIHk9IjEwMyIgd2lkdGg9IjM5NSIgaGVpZ2h0PSIzMzgiIHJ4PSI5IiBmaWxsPSIjMDAwIi8+CiAgICAgIDxyZWN0IHg9IjU4IiB5PSI0OTEiIHdpZHRoPSIzODUiIGhlaWdodD0iMTQwIiByeD0iNSIgZmlsbD0iIzAwMCIvPgogICAgPC9tYXNrPgogIDwvZGVmcz4KCiAgPGcgbWFzaz0idXJsKCNob2xlcykiPgogICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI3MDAiIHJ4PSIyNiIgZmlsbD0iIzIyMmEzZSIvPgogICAgPHJlY3QgeD0iMTIiIHk9IjEyIiB3aWR0aD0iNDc2IiBoZWlnaHQ9IjY3NiIgcng9IjIwIiBmaWxsPSIjYzQ0NTFjIi8+CiAgICA8cmVjdCB4PSIyMiIgeT0iMjIiIHdpZHRoPSI0NTYiIGhlaWdodD0iNjU2IiByeD0iMTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YyY2Q3MiIgc3Ryb2tlLXdpZHRoPSI3Ii8+CiAgICA8cmVjdCB4PSIzOCIgeT0iODgiIHdpZHRoPSI0MjUiIGhlaWdodD0iMzY4IiByeD0iMjQiIGZpbGw9IiMyMjJhM2UiLz4KICAgIDxyZWN0IHg9IjQzIiB5PSI0NzYiIHdpZHRoPSI0MTUiIGhlaWdodD0iMTcwIiByeD0iMjAiIGZpbGw9IiMyMjJhM2UiLz4KICA8L2c+CgogIDxyZWN0IHg9IjQ0IiB5PSI5NCIgd2lkdGg9IjQxMyIgaGVpZ2h0PSIzNTYiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxyZWN0IHg9IjQ5IiB5PSI5OSIgd2lkdGg9IjQwMyIgaGVpZ2h0PSIzNDYiIHJ4PSIxMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxyZWN0IHg9IjQ5IiB5PSI0ODIiIHdpZHRoPSI0MDMiIGhlaWdodD0iMTU4IiByeD0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YyY2Q3MiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPC9zdmc+Cg=="); }
+.champ[data-el="ice"]    { --frame: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgNzAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgPCEtLSBpY2Ugw6dlcsOnZXZlc2kg4oCUIHRvb2xzLW1ha2UtZnJhbWVzLmpzIMO8cmV0dGksIGVsbGUgZMO8emVubGVtZSAtLT4KICA8ZGVmcz4KICAgIDwhLS0gU2FuYXQgcGVuY2VyZXNpIHZlIGlzaW0gbGV2aGFzxLEgREVMxLBLOiBhbHRsYXLEsW5kYWtpIMWfYW1waXlvbgogICAgICAgICBnw7Zyc2VsaSwgZWxlbWVudCDEscWfxLFtYXPEsSB2ZSB5YXrEsSBnw7Zyw7xubWV5ZSBkZXZhbSBldHNpbi4gLS0+CiAgICA8bWFzayBpZD0iaG9sZXMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNzAwIj4KICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI3MDAiIHJ4PSIyNiIgZmlsbD0iI2ZmZiIvPgogICAgICA8cmVjdCB4PSI1MyIgeT0iMTAzIiB3aWR0aD0iMzk1IiBoZWlnaHQ9IjMzOCIgcng9IjkiIGZpbGw9IiMwMDAiLz4KICAgICAgPHJlY3QgeD0iNTgiIHk9IjQ5MSIgd2lkdGg9IjM4NSIgaGVpZ2h0PSIxNDAiIHJ4PSI1IiBmaWxsPSIjMDAwIi8+CiAgICA8L21hc2s+CiAgPC9kZWZzPgoKICA8ZyBtYXNrPSJ1cmwoI2hvbGVzKSI+CiAgICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCIgcng9IjI2IiBmaWxsPSIjMjIyYTNlIi8+CiAgICA8cmVjdCB4PSIxMiIgeT0iMTIiIHdpZHRoPSI0NzYiIGhlaWdodD0iNjc2IiByeD0iMjAiIGZpbGw9IiMxMTkzYmQiLz4KICAgIDxyZWN0IHg9IjIyIiB5PSIyMiIgd2lkdGg9IjQ1NiIgaGVpZ2h0PSI2NTYiIHJ4PSIxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjciLz4KICAgIDxyZWN0IHg9IjM4IiB5PSI4OCIgd2lkdGg9IjQyNSIgaGVpZ2h0PSIzNjgiIHJ4PSIyNCIgZmlsbD0iIzIyMmEzZSIvPgogICAgPHJlY3QgeD0iNDMiIHk9IjQ3NiIgd2lkdGg9IjQxNSIgaGVpZ2h0PSIxNzAiIHJ4PSIyMCIgZmlsbD0iIzIyMmEzZSIvPgogIDwvZz4KCiAgPHJlY3QgeD0iNDQiIHk9Ijk0IiB3aWR0aD0iNDEzIiBoZWlnaHQ9IjM1NiIgcng9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmMmNkNzIiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHJlY3QgeD0iNDkiIHk9Ijk5IiB3aWR0aD0iNDAzIiBoZWlnaHQ9IjM0NiIgcng9IjEzIiBmaWxsPSJub25lIiBzdHJva2U9IiNmMmNkNzIiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHJlY3QgeD0iNDkiIHk9IjQ4MiIgd2lkdGg9IjQwMyIgaGVpZ2h0PSIxNTgiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8L3N2Zz4K"); }
+.champ[data-el="bolt"]   { --frame: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgNzAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgPCEtLSBib2x0IMOnZXLDp2V2ZXNpIOKAlCB0b29scy1tYWtlLWZyYW1lcy5qcyDDvHJldHRpLCBlbGxlIGTDvHplbmxlbWUgLS0+CiAgPGRlZnM+CiAgICA8IS0tIFNhbmF0IHBlbmNlcmVzaSB2ZSBpc2ltIGxldmhhc8SxIERFTMSwSzogYWx0bGFyxLFuZGFraSDFn2FtcGl5b24KICAgICAgICAgZ8O2cnNlbGksIGVsZW1lbnQgxLHFn8SxbWFzxLEgdmUgeWF6xLEgZ8O2csO8bm1leWUgZGV2YW0gZXRzaW4uIC0tPgogICAgPG1hc2sgaWQ9ImhvbGVzIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSIwIiB5PSIwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNzAwIiByeD0iMjYiIGZpbGw9IiNmZmYiLz4KICAgICAgPHJlY3QgeD0iNTMiIHk9IjEwMyIgd2lkdGg9IjM5NSIgaGVpZ2h0PSIzMzgiIHJ4PSI5IiBmaWxsPSIjMDAwIi8+CiAgICAgIDxyZWN0IHg9IjU4IiB5PSI0OTEiIHdpZHRoPSIzODUiIGhlaWdodD0iMTQwIiByeD0iNSIgZmlsbD0iIzAwMCIvPgogICAgPC9tYXNrPgogIDwvZGVmcz4KCiAgPGcgbWFzaz0idXJsKCNob2xlcykiPgogICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI3MDAiIHJ4PSIyNiIgZmlsbD0iIzIyMmEzZSIvPgogICAgPHJlY3QgeD0iMTIiIHk9IjEyIiB3aWR0aD0iNDc2IiBoZWlnaHQ9IjY3NiIgcng9IjIwIiBmaWxsPSIjOGY1ZjEwIi8+CiAgICA8cmVjdCB4PSIyMiIgeT0iMjIiIHdpZHRoPSI0NTYiIGhlaWdodD0iNjU2IiByeD0iMTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YyY2Q3MiIgc3Ryb2tlLXdpZHRoPSI3Ii8+CiAgICA8cmVjdCB4PSIzOCIgeT0iODgiIHdpZHRoPSI0MjUiIGhlaWdodD0iMzY4IiByeD0iMjQiIGZpbGw9IiMyMjJhM2UiLz4KICAgIDxyZWN0IHg9IjQzIiB5PSI0NzYiIHdpZHRoPSI0MTUiIGhlaWdodD0iMTcwIiByeD0iMjAiIGZpbGw9IiMyMjJhM2UiLz4KICA8L2c+CgogIDxyZWN0IHg9IjQ0IiB5PSI5NCIgd2lkdGg9IjQxMyIgaGVpZ2h0PSIzNTYiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxyZWN0IHg9IjQ5IiB5PSI5OSIgd2lkdGg9IjQwMyIgaGVpZ2h0PSIzNDYiIHJ4PSIxMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxyZWN0IHg9IjQ5IiB5PSI0ODIiIHdpZHRoPSI0MDMiIGhlaWdodD0iMTU4IiByeD0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YyY2Q3MiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPC9zdmc+Cg=="); }
+.champ[data-el="nature"] { --frame: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgNzAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgPCEtLSBuYXR1cmUgw6dlcsOnZXZlc2kg4oCUIHRvb2xzLW1ha2UtZnJhbWVzLmpzIMO8cmV0dGksIGVsbGUgZMO8emVubGVtZSAtLT4KICA8ZGVmcz4KICAgIDwhLS0gU2FuYXQgcGVuY2VyZXNpIHZlIGlzaW0gbGV2aGFzxLEgREVMxLBLOiBhbHRsYXLEsW5kYWtpIMWfYW1waXlvbgogICAgICAgICBnw7Zyc2VsaSwgZWxlbWVudCDEscWfxLFtYXPEsSB2ZSB5YXrEsSBnw7Zyw7xubWV5ZSBkZXZhbSBldHNpbi4gLS0+CiAgICA8bWFzayBpZD0iaG9sZXMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNzAwIj4KICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI3MDAiIHJ4PSIyNiIgZmlsbD0iI2ZmZiIvPgogICAgICA8cmVjdCB4PSI1MyIgeT0iMTAzIiB3aWR0aD0iMzk1IiBoZWlnaHQ9IjMzOCIgcng9IjkiIGZpbGw9IiMwMDAiLz4KICAgICAgPHJlY3QgeD0iNTgiIHk9IjQ5MSIgd2lkdGg9IjM4NSIgaGVpZ2h0PSIxNDAiIHJ4PSI1IiBmaWxsPSIjMDAwIi8+CiAgICA8L21hc2s+CiAgPC9kZWZzPgoKICA8ZyBtYXNrPSJ1cmwoI2hvbGVzKSI+CiAgICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCIgcng9IjI2IiBmaWxsPSIjMjIyYTNlIi8+CiAgICA8cmVjdCB4PSIxMiIgeT0iMTIiIHdpZHRoPSI0NzYiIGhlaWdodD0iNjc2IiByeD0iMjAiIGZpbGw9IiMyYThjNDYiLz4KICAgIDxyZWN0IHg9IjIyIiB5PSIyMiIgd2lkdGg9IjQ1NiIgaGVpZ2h0PSI2NTYiIHJ4PSIxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjciLz4KICAgIDxyZWN0IHg9IjM4IiB5PSI4OCIgd2lkdGg9IjQyNSIgaGVpZ2h0PSIzNjgiIHJ4PSIyNCIgZmlsbD0iIzIyMmEzZSIvPgogICAgPHJlY3QgeD0iNDMiIHk9IjQ3NiIgd2lkdGg9IjQxNSIgaGVpZ2h0PSIxNzAiIHJ4PSIyMCIgZmlsbD0iIzIyMmEzZSIvPgogIDwvZz4KCiAgPHJlY3QgeD0iNDQiIHk9Ijk0IiB3aWR0aD0iNDEzIiBoZWlnaHQ9IjM1NiIgcng9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmMmNkNzIiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHJlY3QgeD0iNDkiIHk9Ijk5IiB3aWR0aD0iNDAzIiBoZWlnaHQ9IjM0NiIgcng9IjEzIiBmaWxsPSJub25lIiBzdHJva2U9IiNmMmNkNzIiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHJlY3QgeD0iNDkiIHk9IjQ4MiIgd2lkdGg9IjQwMyIgaGVpZ2h0PSIxNTgiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8L3N2Zz4K"); }
+.champ[data-el="wind"]   { --frame: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgNzAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgPCEtLSB3aW5kIMOnZXLDp2V2ZXNpIOKAlCB0b29scy1tYWtlLWZyYW1lcy5qcyDDvHJldHRpLCBlbGxlIGTDvHplbmxlbWUgLS0+CiAgPGRlZnM+CiAgICA8IS0tIFNhbmF0IHBlbmNlcmVzaSB2ZSBpc2ltIGxldmhhc8SxIERFTMSwSzogYWx0bGFyxLFuZGFraSDFn2FtcGl5b24KICAgICAgICAgZ8O2cnNlbGksIGVsZW1lbnQgxLHFn8SxbWFzxLEgdmUgeWF6xLEgZ8O2csO8bm1leWUgZGV2YW0gZXRzaW4uIC0tPgogICAgPG1hc2sgaWQ9ImhvbGVzIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSIwIiB5PSIwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgICAgIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNzAwIiByeD0iMjYiIGZpbGw9IiNmZmYiLz4KICAgICAgPHJlY3QgeD0iNTMiIHk9IjEwMyIgd2lkdGg9IjM5NSIgaGVpZ2h0PSIzMzgiIHJ4PSI5IiBmaWxsPSIjMDAwIi8+CiAgICAgIDxyZWN0IHg9IjU4IiB5PSI0OTEiIHdpZHRoPSIzODUiIGhlaWdodD0iMTQwIiByeD0iNSIgZmlsbD0iIzAwMCIvPgogICAgPC9tYXNrPgogIDwvZGVmcz4KCiAgPGcgbWFzaz0idXJsKCNob2xlcykiPgogICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI3MDAiIHJ4PSIyNiIgZmlsbD0iIzIyMmEzZSIvPgogICAgPHJlY3QgeD0iMTIiIHk9IjEyIiB3aWR0aD0iNDc2IiBoZWlnaHQ9IjY3NiIgcng9IjIwIiBmaWxsPSIjNWE2Zjk2Ii8+CiAgICA8cmVjdCB4PSIyMiIgeT0iMjIiIHdpZHRoPSI0NTYiIGhlaWdodD0iNjU2IiByeD0iMTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YyY2Q3MiIgc3Ryb2tlLXdpZHRoPSI3Ii8+CiAgICA8cmVjdCB4PSIzOCIgeT0iODgiIHdpZHRoPSI0MjUiIGhlaWdodD0iMzY4IiByeD0iMjQiIGZpbGw9IiMyMjJhM2UiLz4KICAgIDxyZWN0IHg9IjQzIiB5PSI0NzYiIHdpZHRoPSI0MTUiIGhlaWdodD0iMTcwIiByeD0iMjAiIGZpbGw9IiMyMjJhM2UiLz4KICA8L2c+CgogIDxyZWN0IHg9IjQ0IiB5PSI5NCIgd2lkdGg9IjQxMyIgaGVpZ2h0PSIzNTYiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxyZWN0IHg9IjQ5IiB5PSI5OSIgd2lkdGg9IjQwMyIgaGVpZ2h0PSIzNDYiIHJ4PSIxMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxyZWN0IHg9IjQ5IiB5PSI0ODIiIHdpZHRoPSI0MDMiIGhlaWdodD0iMTU4IiByeD0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YyY2Q3MiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPC9zdmc+Cg=="); }
+.champ[data-el="arcane"] { --frame: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgNzAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCI+CiAgPCEtLSBhcmNhbmUgw6dlcsOnZXZlc2kg4oCUIHRvb2xzLW1ha2UtZnJhbWVzLmpzIMO8cmV0dGksIGVsbGUgZMO8emVubGVtZSAtLT4KICA8ZGVmcz4KICAgIDwhLS0gU2FuYXQgcGVuY2VyZXNpIHZlIGlzaW0gbGV2aGFzxLEgREVMxLBLOiBhbHRsYXLEsW5kYWtpIMWfYW1waXlvbgogICAgICAgICBnw7Zyc2VsaSwgZWxlbWVudCDEscWfxLFtYXPEsSB2ZSB5YXrEsSBnw7Zyw7xubWV5ZSBkZXZhbSBldHNpbi4gLS0+CiAgICA8bWFzayBpZD0iaG9sZXMiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI1MDAiIGhlaWdodD0iNzAwIj4KICAgICAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI3MDAiIHJ4PSIyNiIgZmlsbD0iI2ZmZiIvPgogICAgICA8cmVjdCB4PSI1MyIgeT0iMTAzIiB3aWR0aD0iMzk1IiBoZWlnaHQ9IjMzOCIgcng9IjkiIGZpbGw9IiMwMDAiLz4KICAgICAgPHJlY3QgeD0iNTgiIHk9IjQ5MSIgd2lkdGg9IjM4NSIgaGVpZ2h0PSIxNDAiIHJ4PSI1IiBmaWxsPSIjMDAwIi8+CiAgICA8L21hc2s+CiAgPC9kZWZzPgoKICA8ZyBtYXNrPSJ1cmwoI2hvbGVzKSI+CiAgICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjcwMCIgcng9IjI2IiBmaWxsPSIjMjIyYTNlIi8+CiAgICA8cmVjdCB4PSIxMiIgeT0iMTIiIHdpZHRoPSI0NzYiIGhlaWdodD0iNjc2IiByeD0iMjAiIGZpbGw9IiM2YjNiYzQiLz4KICAgIDxyZWN0IHg9IjIyIiB5PSIyMiIgd2lkdGg9IjQ1NiIgaGVpZ2h0PSI2NTYiIHJ4PSIxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjciLz4KICAgIDxyZWN0IHg9IjM4IiB5PSI4OCIgd2lkdGg9IjQyNSIgaGVpZ2h0PSIzNjgiIHJ4PSIyNCIgZmlsbD0iIzIyMmEzZSIvPgogICAgPHJlY3QgeD0iNDMiIHk9IjQ3NiIgd2lkdGg9IjQxNSIgaGVpZ2h0PSIxNzAiIHJ4PSIyMCIgZmlsbD0iIzIyMmEzZSIvPgogIDwvZz4KCiAgPHJlY3QgeD0iNDQiIHk9Ijk0IiB3aWR0aD0iNDEzIiBoZWlnaHQ9IjM1NiIgcng9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmMmNkNzIiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHJlY3QgeD0iNDkiIHk9Ijk5IiB3aWR0aD0iNDAzIiBoZWlnaHQ9IjM0NiIgcng9IjEzIiBmaWxsPSJub25lIiBzdHJva2U9IiNmMmNkNzIiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHJlY3QgeD0iNDkiIHk9IjQ4MiIgd2lkdGg9IjQwMyIgaGVpZ2h0PSIxNTgiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjZDcyIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8L3N2Zz4K"); }
+
+/* Çerçeveli kartın iç yerleşimi.
+ *
+ * Bölgeler çerçevenin deliklerine birebir oturuyor — ölçüler
+ * tools-make-frames.js içindeki R tablosundan geliyor, 500×700 üzerinden
+ * yüzdeye çevrildi. Kart 5:7 sabit oranda olduğu için yüzdeler her boyutta
+ * tutuyor. Köşe yarıçapları da elips olarak veriliyor (`% / %`), yoksa
+ * yatay ve dikey yarıçap ayrışıp çerçeveyle kaymış görünüyor.
+ *
+ * Çerçevesiz kartlar (boş deste yuvası) eski flex akışında kalıyor. */
+.champ[data-el] {
+  /* Yazılar kart genişliğine göre ölçekleniyor (cqw). Sabit px verilince
+     deste yuvasındaki 92px'lik kart koleksiyondaki 107px'lik karta göre
+     ayarlanmış yazıyı taşırıyor ve unvan kırpılıyordu. */
+  container-type: inline-size;
+}
+.champ[data-el] .ch-face,
+.champ[data-el] .ch-back { border-radius: 5.2% / 3.714%; }
+
+/* Üst şerit ve seri numarası çerçevenin DELİĞİNDE değil, bandın üstünde
+   duruyor — z-index verilmezse çerçeve (z-index:1) ikisini de örtüyor. */
+.champ[data-el] .ch-top {
+  position: absolute;
+  left: 8%; right: 8%;
+  top: 4%; height: 8.571%;
+  padding: 0;
+  z-index: 2;
+}
+.champ[data-el] .ch-art {
+  position: absolute;
+  left: 10.6%; top: 14.714%;
+  width: 79%; height: 48.286%;
+  margin: 0;
+  border: none;
+  border-radius: 2.278% / 2.663%;
+}
+
+/* İsim, unvan ve seri numarası aynı deliğin içinde — üstte iki satır yazı,
+   altta seri. Seri bandın üstünde dururken doygun renkte okunmuyordu. */
+.champ[data-el] .ch-plate {
+  position: absolute;
+  left: 11.6%; top: 70.429%;
+  width: 77%; height: 13.571%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 3%;
+  overflow: hidden;
+}
+.champ[data-el] .ch-serial {
+  position: absolute;
+  left: 11.6%; top: 84%;
+  width: 77%; height: 5.714%;
+  padding: 0;
+  border-top: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.champ[data-el] .ch-name   { font-size: 9.3cqw; line-height: 1.15; }
+.champ[data-el] .ch-title  { font-size: 7cqw;   line-height: 1.15; margin-top: 0; }
+
+/* Güç sayısı doygun bandın üstünde duruyor — element renginde okunmuyordu.
+   Beyaz + siyah kontur her bant renginde çalışıyor.
+
+   Kontur `text-shadow` ile: sekiz yönde bulanıksız gölge. `-webkit-text-stroke`
+   daha temiz ama konturu harfin İÇİNE doğru çiziyor, 10px'te harfi yiyor. */
+.champ[data-el] .ch-atk {
+  font-size: 9.3cqw;
+  color: #fff;
+  text-shadow:
+     1px 0 0 #000, -1px 0 0 #000,  0 1px 0 #000,  0 -1px 0 #000,
+     1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+}
+
+/* Nadirlik noktaları da bandın üstünde: nadirlik rengi (özellikle destansı moru)
+   mor ve mavi bantlarda kayboluyordu. Sayı zaten nadirliği söylüyor — 1, 2, 3. */
+.champ[data-el] .ch-pips i {
+  width: 3.74cqw; height: 3.74cqw;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(0,0,0,.9);
+}
+
+/* Seri numarası beyaz; baskı adedini AŞANLAR altın.
+   Ayrı bir "OVER" damgası yok — 300'ün üstündeki numara zaten söylüyor. */
+.champ[data-el] .ch-serial {
+  font-size: 6.1cqw;
+  color: #fff;
+}
+.champ[data-el].over .ch-serial {
+  color: var(--gold);
+  background: none;
+  letter-spacing: .14em;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+
+/* nadirlik arttıkça artan folyo parlaması */
+.ch-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(122deg,
+    transparent 30%,
+    color-mix(in srgb, var(--r) 22%, transparent) 46%,
+    transparent 62%);
+  opacity: .55;
+}
+
+.ch-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px 2px;
+}
+.ch-pips { display: flex; gap: 2px; }
+.ch-pips i {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--r);
+  box-shadow: 0 0 5px var(--r);
+}
+.ch-atk {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--c);
+  letter-spacing: .02em;
+}
+
+/* sanat penceresi — kendi çerçevesi var, kart yüzeyinden ayrılsın */
+.ch-art {
+  position: relative;
+  flex: 1;
+  margin: 0 4px;
+  border-radius: 5px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
+  background: linear-gradient(#0d0b13, #14101c);
+}
+.ch-rays {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 160%; aspect-ratio: 1;
+  transform: translate(-50%,-50%);
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--c) 15%, transparent) 0deg 5deg,
+    transparent 5deg 16deg);
+  mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+  -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+  opacity: .8;
+}
+.ch-glyph {
+  position: relative;
+  width: 48%;
+  color: var(--c);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 68%, transparent));
+}
+.ch-glyph svg { width: 100%; height: auto; display: block; }
+
+/* Şampiyon görseli — varsa sembolün üstünü kapatır, yoksa hiç oluşmaz.
+   Dosya: assets/champ/<id>.png */
+.ch-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ch-plate {
+  position: relative;
+  padding: 4px 4px 2px;
+  text-align: center;
+}
+.ch-name {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ch-title {
+  display: block;
+  margin-top: 1px;
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* seri numarası — koleksiyoncunun baktığı yer */
+.ch-serial {
+  position: relative;
+  display: block;
+  padding: 2px 5px 4px;
+  text-align: center;
+  font-size: 6.5px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: color-mix(in srgb, var(--r) 62%, var(--muted));
+  border-top: 1px solid color-mix(in srgb, var(--c) 22%, transparent);
+}
+
+/* baskı adedini aşan kopya */
+.champ.over .ch-face {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent),
+              0 0 18px -6px var(--gold);
+}
+.champ.over .ch-sheen {
+  background: linear-gradient(122deg,
+    transparent 24%, rgba(255,255,255,.28) 42%,
+    color-mix(in srgb, var(--gold) 55%, transparent) 52%,
+    transparent 68%);
+  opacity: .9;
+}
+/* Çerçevesiz kart (boş yuva) için kalan yedek. Çerçeveli kartın aşım
+   biçimlendirmesi yukarıda, `.champ[data-el].over .ch-serial` içinde. */
+.champ.over .ch-serial {
+  color: var(--gold);
+  letter-spacing: .2em;
+}
+
+.ch-badge {
+  position: absolute;
+  top: -7px; left: 50%;
+  transform: translateX(-50%);
+  width: 19px; height: 19px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #0e0d15;
+  background: var(--gold);
+  box-shadow: 0 2px 8px -2px #000;
+  z-index: 2;
+}
+
+.champ.picked .ch-face {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent),
+              0 0 16px -6px var(--gold);
+}
+
+.champ.mini .ch-plate { padding: 4px 3px 5px; }
+
+.champ.empty { cursor: default; perspective: none; }
+.champ.empty .ch-face {
+  position: absolute;
+  border: 1px dashed rgba(255,255,255,.11);
+  background: rgba(255,255,255,.014);
+  box-shadow: none;
+  align-items: center;
+  justify-content: center;
+}
+.ch-plus { font-size: 21px; color: rgba(255,255,255,.16); font-weight: 300; }
+
+/* --- açılış anındaki vurgu: kartın kendi çerçevesi parlar --- */
+
+.champ.revealing .ch-face {
+  animation: chReveal .78s cubic-bezier(.3,.9,.4,1);
+}
+/* Üç karede de AYNI sayıda gölge olmalı — sayı değişince tarayıcı ara değerleri
+   düzgün hesaplayamıyor ve parlama sönük kalıyor. Ortadaki gölge açılıp kapanan
+   hâle: uçlarda sıfır boyut ve şeffaf. */
+@keyframes chReveal {
+  0% {
+    border-color: color-mix(in srgb, var(--c) 55%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r) 26%, transparent),
+                0 0 0 0 transparent,
+                0 3px 10px -5px #000;
+  }
+  22% {
+    border-color: var(--r);
+    /* yaygın 14px, nadir 22px, destansı 30px — kartın etrafında kalsın, yayılmasın */
+    box-shadow: inset 0 0 0 1px var(--r),
+                0 0 calc(6px + var(--gw, 1) * 8px) -2px var(--r),
+                0 3px 10px -5px #000;
+  }
+  100% {
+    border-color: color-mix(in srgb, var(--c) 55%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r) 26%, transparent),
+                0 0 0 0 transparent,
+                0 3px 10px -5px #000;
+  }
+}
+
+/* folyo ışığı kartın üstünden bir kez geçer — saçılan parçacığın yerini bu alıyor */
+.champ.revealing .ch-sheen { animation: chSheen .78s ease-out; }
+@keyframes chSheen {
+  from { transform: translateX(-115%); }
+  to   { transform: translateX(115%); }
+}
+
+/* --- açılış anındaki vurgular --- */
+
+.fx-rarity {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .22em;
+  white-space: nowrap;
+  color: var(--c);
+  text-shadow: 0 0 12px var(--c), 0 2px 6px #000;
+}
+.fx-beam {
+  width: 46px;
+  border-radius: 50%;
+  background: linear-gradient(transparent, var(--c) 45%, var(--c) 55%, transparent);
+  filter: blur(7px);
+  opacity: .8;
+}
+
+/* ---------- paket açma ---------- */
+
+#scr-pack { align-items: center; }
+
+.pack-head {
+  margin: 4vh 0 auto;
+  font-size: 12px;
+  letter-spacing: .18em;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.pack-stage {
+  position: relative;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  margin-bottom: auto;
+}
+
+/* Paket bir "poşet" değil, bir KART: aynı oran, aynı dil, ama folyo çerçeveli. */
+.pack {
+  position: relative;
+  width: 176px;
+  aspect-ratio: 5 / 7;
+}
+
+.pk-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background:
+    url('assets/pack.png') center/cover no-repeat,
+    repeating-linear-gradient(48deg, rgba(255,255,255,.02) 0 2px, transparent 2px 8px),
+    linear-gradient(158deg, #342c52 0%, #201a35 46%, #14101e 100%);
+  border: 1px solid #4a4070;
+  box-shadow: inset 0 0 0 1px rgba(214,186,120,.16), 0 14px 34px -16px #000;
+  /* üstte yırtık kenar */
+  clip-path: polygon(0 9%, 4% 7.4%, 8% 9%, 12% 7.4%, 16% 9%, 20% 7.4%, 24% 9%, 28% 7.4%,
+    32% 9%, 36% 7.4%, 40% 9%, 44% 7.4%, 48% 9%, 52% 7.4%, 56% 9%, 60% 7.4%, 64% 9%,
+    68% 7.4%, 72% 9%, 76% 7.4%, 80% 9%, 84% 7.4%, 88% 9%, 92% 7.4%, 96% 9%, 100% 7.4%,
+    100% 100%, 0 100%);
+}
+
+/* folyo parlaması sürekli geçiyor — paket "canlı" dursun */
+.pk-sheen {
+  position: absolute;
+  inset: -40% -60%;
+  background: linear-gradient(118deg,
+    transparent 38%, rgba(255,255,255,.09) 47%,
+    rgba(214,186,120,.3) 51%, rgba(255,255,255,.09) 55%, transparent 64%);
+  animation: pkSheen 3.6s ease-in-out infinite;
+}
+@keyframes pkSheen {
+  0%, 100% { transform: translateX(-38%); }
+  50%      { transform: translateX(38%); }
+}
+
+.pk-inner {
+  position: absolute;
+  inset: 11% 9% 9%;
+  border: 1px solid rgba(214,186,120,.28);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+.pk-mark { width: 54px; color: var(--gold); }
+.pk-mark svg { width: 100%; height: auto; display: block; }
+.pk-word {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .2em;
+  color: var(--gold);
+}
+.pk-rule {
+  width: 46px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(214,186,120,.6), transparent);
+}
+.pk-sub {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  color: #7d7395;
+}
+
+/* koparılan şerit — animasyonla, transition ile DEĞİL:
+   transition kullanınca sınıf kalkar kalkmaz geri sarıyordu */
+.pk-tear {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 10%;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(#40365f, #2c2445);
+  border: 1px solid #52477a;
+  border-bottom: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09);
+  transform-origin: 100% 100%;
+  z-index: 2;
+}
+
+.pk-burst {
+  position: absolute;
+  left: 50%; top: 8%;
+  width: 140px; height: 140px;
+  transform: translate(-50%,-50%) scale(0);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--gold) 26%, transparent 66%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.pack-cards {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  align-content: center;
+  pointer-events: none;
+}
+.pack-cards:empty { display: none; }
+
+#packSlot { display: grid; place-items: center; }
+
+#packBtn { margin-bottom: 6px; }
+#packBtn:disabled { opacity: .35; }
+/* Açılış boyunca tuş görünmez ama YER KAPLAR. Yazısı silinince yüksekliği
+   düşüyor, esnek sütun yeniden ortalanıyor ve kartlar zıplıyordu. */
+#packBtn.yazisiz { color: transparent; }
+
+/* ---------- ganimet özeti ---------- */
+
+#scr-haul { gap: 14px; }
+
+.haul-top { flex: 0 0 auto; text-align: center; margin-top: 3vh; }
+.haul-title { display: block; font-size: 17px; font-weight: 800; }
+.haul-sub { display: block; margin-top: 5px; font-size: 12px; color: var(--gold); font-weight: 700; }
+
+.haul-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  align-content: center;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- deste kurma ---------- */
+
+#scr-deck { gap: 12px; }
+
+.deck-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.deck-top .icon {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.deck-title { font-size: 16px; font-weight: 800; }
+.deck-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: .04em;
+}
+
+.deck-slots {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 22px;
+}
+
+/* --- sıralama ve filtre --- */
+
+.deck-tools {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.seg button {
+  padding: 6px 4px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font: 700 11px/1 inherit;
+  letter-spacing: .03em;
+  cursor: pointer;
+}
+.seg button.on {
+  background: var(--panel-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 26%, transparent);
+}
+/* aktif sıralamanın yönü */
+.seg button.on::after {
+  content: " ▾";
+  font-size: 8px;
+  color: var(--gold);
+}
+.seg[data-dir="up"] button.on::after { content: " ▴"; }
+
+/* Element sayısı değişebiliyor (4 → 6 oldu) — sabit sütun sayısı yerine
+   esnek: "Tümü" içeriği kadar, element çipleri kalanı eşit paylaşır. */
+.chips { display: flex; gap: 4px; }
+.chips button {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--c, var(--muted));
+  font: 700 10.5px/1 inherit;
+  cursor: pointer;
+}
+.chips button:first-child { flex: 0 0 auto; padding: 0 11px; }
+.chips button svg { width: 14px; height: 14px; }
+.chips button.on {
+  border-color: color-mix(in srgb, var(--c, var(--gold)) 65%, transparent);
+  background: color-mix(in srgb, var(--c, var(--gold)) 13%, var(--panel));
+  color: color-mix(in srgb, var(--c, var(--gold)) 80%, #fff);
+}
+
+.deck-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  align-content: start;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.deck-grid:empty::after {
+  content: "Bu elementte kartın yok";
+  grid-column: 1 / -1;
+  padding: 26px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+#deckSave { flex: 0 0 auto; }
+#deckSave:disabled { opacity: .35; }
+
+#deckOwned { color: var(--gold); }
+
+/* ---------- lobi ---------- */
+
+#scr-lobby { gap: 16px; }
+
+.brand { text-align: center; margin-top: 6vh; }
+.brand-mark {
+  width: 62px; height: 62px;
+  margin: 0 auto 14px;
+  color: var(--gold);
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--gold) 45%, transparent));
+  animation: breathe 3.4s ease-in-out infinite;
+}
+.brand-mark svg { width: 100%; height: 100%; }
+@keyframes breathe { 50% { transform: scale(1.07); opacity: .82; } }
+
+.brand h1 {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: .2em;
+  margin-bottom: 9px;
+}
+.online {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.online .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #4fbf7a;
+  box-shadow: 0 0 8px #4fbf7a;
+  animation: blink 2.2s ease-in-out infinite;
+}
+@keyframes blink { 50% { opacity: .35; } }
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 15px;
+  border: 1px solid var(--line);
+  background: linear-gradient(var(--panel-2), var(--panel));
+}
+.record {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+
+#scr-lobby .team-strip { margin-bottom: auto; }
+
+.lobby-actions { flex: 0 0 auto; margin-top: 16px; }
+.lobby-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+/* Eski "ghost" butonlar pasif görünüyordu — bunlar gerçek yüzeyler:
+   dolgu, ikon, alt bilgi. Devre dışı hâli ayrıca belli. */
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 11px 8px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: linear-gradient(var(--panel-2), var(--panel));
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: transform .16s, border-color .2s, box-shadow .2s;
+}
+.tile:active { transform: scale(.97); background: #1b1827; }
+
+.tile-ico { width: 24px; height: 24px; color: var(--gold); }
+.tile-ico svg { width: 100%; height: auto; display: block; }
+.tile-txt { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; }
+.tile-sub { font-size: 9.5px; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
+
+.tile-badge {
+  position: absolute;
+  top: -6px; right: -4px;
+  min-width: 19px; height: 19px;
+  padding: 0 5px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #0e0d15;
+  background: var(--gold);
+  box-shadow: 0 2px 8px -2px #000;
+}
+.tile-badge[hidden] { display: none; }
+
+/* paket varken tuş kendini belli etsin */
+.tile.ready {
+  border-color: color-mix(in srgb, var(--gold) 55%, transparent);
+  box-shadow: 0 0 18px -8px var(--gold), inset 0 0 0 1px color-mix(in srgb, var(--gold) 16%, transparent);
+}
+.tile:disabled { cursor: default; opacity: .5; }
+.tile:disabled .tile-ico { color: var(--muted); }
+
+.lobby-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 0 4px;
+  font-size: 10px;
+  color: #4b455c;
+  letter-spacing: .04em;
+}
+/* Dokunma alanı yazıdan büyük: yazı 10px, hedef 56×22 idi ve telefonda
+   ıskalanıyordu (projenin kendi kuralı 44pt). Dolgu büyüdü, eksi kenar boşluğu
+   yerleşimi eskisi gibi bırakıyor — düğme görünüşte aynı, hedef iki katı. */
+.lobby-foot button {
+  background: none;
+  border: none;
+  padding: 13px 12px;
+  margin: -9px -12px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.lobby-foot button.armed { color: #ffb0a0; font-weight: 700; }
+
+/* Kartlar girerken tuş HER SEFERİNDE yanıp sönüyordu — 9 kartta göz yoruyor.
+   Artık tek bir yumuşak hâle, hepsi girdikten sonra. Sıçrama ve çerçeve
+   rengi değişimi yok; sadece şişip sönen bir parıltı. */
+#deckBtn.filled { animation: deckFilled .8s cubic-bezier(.3,.9,.4,1); }
+@keyframes deckFilled {
+  0%   { box-shadow: 0 0 0 0 transparent; }
+  32%  { box-shadow: 0 0 26px -5px color-mix(in srgb, var(--gold) 62%, transparent),
+                     inset 0 0 0 1px color-mix(in srgb, var(--gold) 34%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ---------- ekranlar arası uçan kartlar ---------- */
+
+#fly {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+/* uçan kart kendi konumunu taşır — merkez ötelemesi uygulanmasın */
+#fly > .fly-card { transform: none; }
+.fly-card > .champ {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  pointer-events: none;
+}
+
+/* ---------- arama ---------- */
+
+#scr-search { align-items: center; justify-content: center; gap: 0; }
+
+.radar {
+  position: relative;
+  width: 190px; height: 190px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 34px;
+}
+.radar .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid #4a3f6b;
+  animation: ripple 2.4s ease-out infinite;
+}
+.radar .r2 { animation-delay: .8s; }
+.radar .r3 { animation-delay: 1.6s; }
+@keyframes ripple {
+  0%   { transform: scale(.35); opacity: 0; }
+  25%  { opacity: .85; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.radar-core {
+  width: 60px; height: 60px;
+  color: var(--gold);
+  animation: spin 5s linear infinite;
+}
+.radar-core svg { width: 100%; height: 100%; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.search-text {
+  font-size: 15.5px;
+  font-weight: 700;
+  text-align: center;
+  min-height: 22px;
+}
+.search-text.found { color: #9ff0c4; }
+
+.search-timer {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 7px;
+  font-variant-numeric: tabular-nums;
+}
+#cancelBtn { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 26px); width: calc(100% - 36px); max-width: 424px; }
+
+/* ---------- eşleşme (VS) ---------- */
+
+#scr-versus { justify-content: center; gap: 4px; }
+
+.vs-side {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(var(--panel-2), var(--panel));
+}
+/* Rakip yukarıdan iner, sen aşağıdan çıkarsın — savaştaki yerlerinizle aynı yön.
+   Önce rakip girer: yeni bilgi olan taraf o. */
+.vs-them { animation: dropIn .5s cubic-bezier(.2,.9,.3,1) both; }
+.vs-me   { animation: riseIn .5s cubic-bezier(.2,.9,.3,1) .12s both; }
+@keyframes dropIn { from { opacity: 0; transform: translateY(-38px); } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(38px); } }
+
+.vs-head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+
+.vs-badge {
+  align-self: center;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--gold);
+  padding: 5px 0;
+  animation: clash .45s cubic-bezier(.2,1.5,.4,1) .42s both;
+}
+@keyframes clash {
+  from { opacity: 0; transform: scale(2.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.vs-side .team-strip { gap: 6px; }
+.vs-side .unit { padding: 6px 7px; }
+.vs-side .hpbar, .vs-side .hptext { display: none; }
+
+/* ---------- savaştaki rakip şeridi ---------- */
+
+.foe-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 3px;
+  margin-bottom: -4px;
+}
+.foe-bar .fname { font-size: 13px; font-weight: 700; }
+.foe-bar .fmeta { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+/* ---------- top bar ---------- */
+
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.round {
+  font-size: 11px;
+  letter-spacing: .14em;
+  font-weight: 700;
+  color: var(--muted);
+}
+.round span { color: var(--gold); }
+
+#turnBanner {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  transition: color .2s, border-color .2s, background .2s;
+}
+#turnBanner.turn-player {
+  color: #9ff0c4;
+  border-color: #2f6b4d;
+  background: linear-gradient(#16281f, #12211a);
+}
+#turnBanner.turn-ai {
+  color: #ffb0a0;
+  border-color: #6b3630;
+  background: linear-gradient(#2a1817, #211313);
+}
+
+#leaveBtn {
+  width: 34px; height: 34px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+#leaveBtn:active { background: var(--panel-2); }
+
+/* ---------- team strips ---------- */
+
+.team-strip {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap);
+}
+
+/* Birim kartı elementinin rengiyle DOLU.
+ *
+ * Önce nötr koyu bir kutuydu ve element rengi yalnızca %28 opaklıkta ince bir
+ * halkaydı — altı birim de aynı görünüyordu, "kimin kartı bu" bakışta
+ * okunmuyordu. Şimdi zemin elementin koyu tonu.
+ *
+ * Ham element rengi kullanılmıyor: `--fire` gibi renkler ikon ve ışıma için
+ * seçildi, geniş bir zemin olarak basılınca kart bağırıyor ve üstündeki yazı
+ * okunmuyor. Kart çerçevelerindeki `BAND` tablosuyla aynı mantık, burada
+ * `color-mix` ile yapılıyor. */
+.unit {
+  position: relative;
+  background: linear-gradient(165deg,
+    color-mix(in srgb, var(--c) 44%, #17131f) 0%,
+    color-mix(in srgb, var(--c) 20%, #100d18) 82%);
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+  border-radius: 12px;
+  padding: 7px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: visible;
+  transition: transform .16s ease, opacity .3s, filter .3s;
+}
+.unit::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  border: 1px solid var(--c);
+  opacity: .42;
+  pointer-events: none;
+}
+
+.unit .row1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Zemin artık elementin rengi; sembol de aynı renkte kalsaydı içinde
+   kaybolurdu. Beyaza doğru açılıp zeminden ayrılıyor, rengi hâlâ okunuyor. */
+.unit .glyph {
+  width: 22px; height: 22px;
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--c) 62%, #fff);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+}
+.unit .glyph svg { width: 100%; height: 100%; display: block; }
+
+.unit .name {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.55);
+}
+
+/* Güç sayısı element renginden beyaza döndü — kendi renginin üstünde
+   okunmuyordu. Kart çerçevelerindeki güç sayısıyla aynı çözüm. */
+.unit .atk {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  margin-left: auto;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+/* Oluk renkli zeminin üstünde: yarı saydam siyah, her elementte aynı derinlikte
+   çukur açıyor. Sabit #0e0d15 bazı renklerde yamalı duruyordu. */
+.unit .hpbar {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0,0,0,.45);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+}
+.unit .hpfill {
+  height: 100%;
+  background: linear-gradient(90deg, #4fbf7a, #7ad99a);
+  transition: width .32s cubic-bezier(.3,.9,.4,1);
+}
+.unit.low .hpfill { background: linear-gradient(90deg, #d95a45, #eb8b6a); }
+
+.unit .hptext {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,.78);   /* --muted renkli zeminde çamura dönüyordu */
+  letter-spacing: .04em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+
+.unit.dead {
+  opacity: .3;
+  filter: grayscale(1);
+}
+.unit.dead .name { text-decoration: line-through; }
+
+/* büyü hazırlığı — kendi renginde toplanma */
+.unit.casting {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 1px var(--c), 0 0 22px -4px var(--c);
+  z-index: 3;
+}
+.unit.casting::before { opacity: 1; }
+
+/* fırlatma anındaki geri tepme */
+.unit.attacking { transform: scale(.94); }
+
+.unit.hit { animation: shake .3s ease; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+/* çarpma anındaki hafif ekran sarsıntısı — mobilde abartısı rahatsız eder */
+#app.quake { animation: quake .26s cubic-bezier(.36,.07,.19,.97); }
+@keyframes quake {
+  0%,100% { transform: translate(0,0); }
+  20% { transform: translate(-2px, 2px); }
+  45% { transform: translate(2px, -1px); }
+  70% { transform: translate(-1px, 1px); }
+}
+
+.dmg {
+  position: absolute;
+  top: -2px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  pointer-events: none;
+  text-shadow: 0 2px 8px rgba(0,0,0,.8);
+  animation: rise .75s ease-out forwards;
+  z-index: 5;
+}
+@keyframes rise {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(.7); }
+  22%  { opacity: 1; transform: translate(-50%, -8px) scale(1.12); }
+  100% { opacity: 0; transform: translate(-50%, -34px) scale(1); }
+}
+
+/* ---------- board ---------- */
+
+/* ---------- rune kartları ---------- */
+
+#boardWrap {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* Kartlar 5:7 — gerçek bir TCG kartı oranı.
+   Bu blok yedek: `container-type: size` desteklenmeyen tarayıcılarda çalışır. */
+#board {
+  --gap: 7px;
+  height: 100%;
+  max-height: 100%;
+  aspect-ratio: calc(4 * 5) / calc(4 * 7);
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--gap);
+}
+
+/* Kart oranını KESİN tutan ölçüm.
+ *
+ * Yedek blok iki yerde yanılıyordu ve ikisi de kartları uzatıyordu:
+ *
+ * 1. `height: 100%` ile `max-width: 100%` çakışıyor. Dar ve uzun bir alanda
+ *    tahta genişliği kırpılıyor ama yüksekliği tam kalıyor — `aspect-ratio`
+ *    devre dışı kalıyor. Ölçüldü: 432x1007'lik alanda kart oranı 0.417
+ *    (olması gereken 0.714), yani kartlar %71 fazla uzun.
+ * 2. Tahtanın oranı 5:7 verilmişti ama tahta 4x4 kart ARTI boşluk. Boşluklar
+ *    mutlak piksel olduğu için tek bir oran her boyutta doğru olamıyor.
+ *
+ * Çözüm: tahtanın oranını değil KARTIN kenarını hesapla. Hücre genişliği iki
+ * kısıttan küçüğü — yatayda sığan ve dikeyde sığan. Boşluklar hesaba dahil,
+ * yani oran her ekranda tam 5:7. */
+@supports (container-type: size) {
+  #boardWrap { container-type: size; }
+
+  #board {
+    --cell: min(
+      (100cqw - 3 * var(--gap)) / 4,
+      (100cqh - 3 * var(--gap)) / 4 * 5 / 7
+    );
+    width: auto;
+    height: auto;
+    aspect-ratio: auto;
+    grid-template-columns: repeat(4, var(--cell));
+    grid-template-rows: repeat(4, calc(var(--cell) * 7 / 5));
+  }
+}
+
+/* Kart yuvası — kartlar gelmeden önce nereye geleceklerini,
+   kalktıktan sonra da yerin boşaldığını gösterir. Yol gösterecek kadar
+   görünür, dikkat çekecek kadar değil. */
+.slot {
+  position: relative;
+  border-radius: 9px;
+  border: 1px dashed rgba(255,255,255,.065);
+  background: rgba(255,255,255,.011);
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  perspective: 800px;
+  background: none;
+  border: none;
+  padding: 0;
+  min-width: 0;
+  cursor: pointer;
+  transition: opacity .35s, transform .35s;
+}
+
+.card-inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .4s cubic-bezier(.3,.95,.35,1);
+}
+.card.up .card-inner,
+.card.matched .card-inner { transform: rotateY(180deg); }
+
+.face {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+
+/* --- kapalı yüz: destenin arkası, hepsi aynı --- */
+
+.face.cover {
+  justify-content: center;
+  color: #6b5d3f;
+  background:
+    url('assets/rune-back.png') center/cover no-repeat,
+    repeating-linear-gradient(48deg,
+      rgba(255,255,255,.022) 0 2px, transparent 2px 7px),
+    linear-gradient(158deg, #2b2542 0%, #1d1830 46%, #14111e 100%);
+  border: 1px solid #3b3457;
+  box-shadow:
+    inset 0 0 0 1px rgba(214,186,120,.10),
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 2px 6px -3px #000;
+}
+/* ince iç çerçeve */
+.face.cover::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(214,186,120,.16);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.cv-mark { width: 55%; }
+.cv-mark svg { width: 100%; height: auto; display: block; }
+
+/* --- açık yüz: rune kartı --- */
+
+.face.rune {
+  transform: rotateY(180deg);
+  justify-content: space-between;
+  padding: 5px 5px 0;
+  color: var(--c);
+  background:
+    radial-gradient(72% 46% at 50% 40%,
+      color-mix(in srgb, var(--c) 30%, transparent) 0%, transparent 72%),
+    linear-gradient(162deg,
+      color-mix(in srgb, var(--c) 15%, #17131f) 0%, #120f19 62%);
+  border: 1px solid color-mix(in srgb, var(--c) 58%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c) 14%, transparent),
+    0 0 14px -7px var(--c),
+    0 2px 6px -3px #000;
+}
+
+/* Rune kartının çerçeve görseli — aynı mantık, şeffaf PNG.
+   Dosya: assets/rune-frame.png (500x700) */
+.face.rune::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url('assets/rune-frame.png') center / 100% 100% no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* sol üstteki küçük element pulu */
+.rn-pip {
+  width: 17%;
+  min-width: 11px;
+  align-self: flex-start;
+  opacity: .85;
+  filter: drop-shadow(0 0 3px var(--c));
+}
+.rn-pip svg { width: 100%; height: auto; display: block; }
+
+/* orta alan: büyük rune */
+.rn-art {
+  position: absolute;
+  inset: 0 0 22% 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.rn-art svg {
+  width: 51%;
+  height: auto;
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--c) 70%, transparent));
+}
+
+/* alttaki isim şeridi */
+.rn-name {
+  width: calc(100% + 10px);
+  margin: 0 -5px;
+  padding: 3px 0 4px;
+  text-align: center;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--c) 72%, #fff);
+  background: linear-gradient(rgba(0,0,0,.42), rgba(0,0,0,.62));
+  border-top: 1px solid color-mix(in srgb, var(--c) 32%, transparent);
+}
+
+/* --- durumlar --- */
+
+.card:active:not(.matched):not(.up) .card-inner { transform: scale(.94); }
+
+/* birleşen çift komşularının üstünde uçsun */
+.slot.merging { z-index: 5; }
+
+/* Eşleşen kart birleşip tahtadan kalkıyor — geriye boş yuva kalıyor.
+   Yerinde hayalet bırakmak, az önce uçup gitmesiyle çelişirdi. */
+.card.matched {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card.pop .face.rune { animation: pop .45s ease; }
+@keyframes pop {
+  0%   { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 14%, transparent), 0 0 14px -7px var(--c); }
+  40%  { box-shadow: inset 0 0 0 1px var(--c), 0 0 30px 1px var(--c); }
+  100% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 14%, transparent), 0 0 14px -7px var(--c); }
+}
+
+/* dar telefonlarda isim şeridi okunmuyor, kalksın */
+@media (max-width: 340px) {
+  .rn-name { display: none; }
+  .rn-art { inset: 0; }
+}
+
+/* ---------- büyü efektleri ---------- */
+
+#fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 12;
+}
+/* left/top merkez noktayı verir; ilk kare oynamasın diye taban ötelemesi burada.
+   Kural İKİ katmana da yazılmalı: efektler savaşta #fx'e, diğer ekranlarda
+   #fly'a doğuyor. Sadece #fx'e yazılıyken #fly'daki efektler position:static
+   kalıp left/top'u yok sayıyor ve ekranın soluna yığılıyordu. */
+#fx > *, #fly > * { position: absolute; transform: translate(-50%, -50%); }
+#fx > .fx-bolt, #fx > .fx-vine { transform: none; }
+
+/* ateş küresi */
+.fx-orb {
+  width: 26px; height: 26px;
+  margin: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, var(--c) 42%, transparent 72%);
+  box-shadow: 0 0 22px 4px var(--c), 0 0 44px 10px color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+/* buz mızrağı — 44x6 iken hızda okunmuyordu, kalınlaştırıldı */
+.fx-lance {
+  width: 58px; height: 9px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, transparent, var(--c) 26%, #fff 60%, var(--c) 82%, transparent);
+  box-shadow: 0 0 20px 3px var(--c);
+  transform-origin: 50% 50%;
+}
+
+/* şimşek */
+.fx-bolt {
+  inset: 0;
+  width: 100%; height: 100%;
+  overflow: visible;
+}
+.fx-bolt polyline {
+  fill: none;
+  stroke: var(--c);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px var(--c));
+}
+
+/* doğa sarmaşığı — katmanı kaplayan SVG, içinde kıvrılan tek bir yol */
+.fx-vine {
+  inset: 0;
+  width: 100%; height: 100%;
+  overflow: visible;
+}
+.fx-vine path {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 65%, transparent));
+}
+.fx-thorn {
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 13px solid var(--c);
+  filter: drop-shadow(0 0 5px var(--c));
+}
+
+/* rüzgar hilali */
+.fx-gust {
+  width: 42px; height: 42px;
+  color: var(--c);
+  filter: drop-shadow(0 0 7px var(--c));
+}
+.fx-gust svg { width: 100%; height: 100%; display: block; }
+
+/* kadim mührü */
+.fx-sigil-ring {
+  width: 92px; height: 92px;
+  color: var(--c);
+  filter: drop-shadow(0 0 11px var(--c));
+}
+.fx-sigil-ring svg { width: 100%; height: 100%; display: block; }
+
+/* çarpma */
+.fx-ring {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 2.5px solid var(--c);
+  box-shadow: 0 0 18px 2px var(--c), inset 0 0 14px -2px var(--c);
+}
+.fx-flash {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--c) 38%, transparent 70%);
+}
+.fx-bit {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 9px 1px var(--c);
+}
+.fx-shard {
+  width: 12px; height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff, var(--c));
+  box-shadow: 0 0 8px 1px var(--c);
+}
+.fx-trail {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--c) 0%, transparent 70%);
+}
+
+/* iki kart birleşince doğan rune */
+.fx-merge {
+  width: 56px; height: 56px;
+  color: var(--c);
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--c) 75%, transparent));
+}
+.fx-merge svg { width: 100%; height: 100%; }
+
+/* hazırlık sırasında caster'ın üstünde beliren rune mührü */
+.fx-sigil {
+  width: 34px; height: 34px;
+  color: var(--c);
+  filter: drop-shadow(0 0 8px var(--c));
+}
+.fx-sigil svg { width: 100%; height: 100%; }
+
+/* ---------- log ---------- */
+
+#log {
+  flex: 0 0 auto;
+  height: 54px;          /* tam 3 satır — taşan satır kırpılmasın */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  padding: 0 2px;
+}
+#log div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: fadein .25s ease;
+}
+#log .l-player { color: #9ff0c4; }
+#log .l-ai     { color: #ffb0a0; }
+#log .l-kill   { color: var(--gold); font-weight: 700; }
+#log .l-sys    { color: #8fa8d8; font-weight: 600; }
+@keyframes fadein { from { opacity: 0; transform: translateY(-3px); } }
+
+/* ---------- overlay ---------- */
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,7,13,.86);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 20;
+  animation: fadein .3s ease;
+}
+#overlay[hidden] { display: none; }
+
+.over-card {
+  background: linear-gradient(var(--panel-2), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 26px 24px 22px;
+  text-align: center;
+  width: 100%;
+  max-width: 300px;
+}
+#overTitle {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  margin-bottom: 6px;
+}
+#overSub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+#overSub b { color: var(--text); }
+
+/* Maç ödülleri — her biri kendi satırı, kazanç ve kayıp renkten okunsun. */
+#overRewards {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 18px;
+}
+#overRewards:empty { display: none; }
+#overRewards span {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.rw-coin { color: var(--gold);  background: color-mix(in srgb, var(--gold) 11%, transparent);  border-color: color-mix(in srgb, var(--gold) 26%, transparent) !important; }
+.rw-lp   { color: #b9b2cc;      background: rgba(255,255,255,.04); }
+.rw-up   { color: #9ff0c4;      background: rgba(120,240,180,.09);  border-color: rgba(120,240,180,.24) !important; }
+.rw-down { color: #ffb0a0;      background: rgba(255,150,130,.08); }
+
+/* ---------------- cüzdan ---------------- */
+
+.wallet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 9px 10px 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 7%, var(--panel)), var(--panel));
+}
+.wallet-amt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+.wallet-amt b { color: var(--gold); font-size: 14.5px; font-weight: 800; }
+.coin-ico { width: 17px; height: 17px; color: var(--gold); display: block; }
+.coin-ico svg { width: 100%; height: 100%; display: block; }
+
+/* Dolu altın: cüzdan çubuğundaki asıl eylem bu, çekinik durmasın.
+   Parası yetmese bile hep açık — alıp alamayacağını satın alma sayfasında
+   görüyor, kapalı bir tuş sebebini söylemiyor. */
+.wallet-buy {
+  border: none;
+  background: linear-gradient(160deg, #f0d288, var(--gold));
+  color: #241d0c;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px -4px var(--gold);
+}
+.wallet-buy:active { transform: scale(.96); }
+
+/* ---------------- rütbe amblemi ---------------- */
+
+.rank-ico {
+  display: inline-block;
+  vertical-align: -.16em;
+  margin-right: .38em;
+}
+.rank-ico svg { width: 100%; height: 100%; display: block; }
+
+/* ---------------- rütbe değişimi anı ---------------- */
+
+#rankFx {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6,5,10,.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadein .28s ease;
+}
+#rankFx[hidden] { display: none; }
+
+/* Sadece ışık ve amblem üst üste — yazılar normal akışta altta.
+   Önce dördü de tek grid hücresindeydi ve margin ile itiliyordu; yazılar
+   birbirinin üstüne biniyordu. */
+.rfx-stage {
+  display: grid;
+  place-items: center;
+  width: 210px; height: 210px;
+}
+.rfx-glow, .rfx-emblem { grid-area: 1 / 1; }
+
+/* Işık amblemin ARKASINDAN çıkıyor; saçılan parçacık yok. */
+.rfx-glow {
+  width: 210px; height: 210px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--rc) 42%, transparent) 0%,
+    color-mix(in srgb, var(--rc) 12%, transparent) 42%,
+    transparent 68%);
+}
+.rfx-emblem {
+  width: 132px; height: 132px;
+  color: var(--rc);
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--rc) 62%, transparent));
+}
+.rfx-emblem .rank-ico { margin: 0; display: block; width: 100%; height: 100%; }
+
+.rfx-word {
+  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .3em;
+  color: var(--muted);
+}
+.rfx-rank {
+  margin-top: 6px;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--rc);
+}
+/* Rütbe değiştiğinde sonuç ekranı atlanıyor; kazanılanlar burada yazıyor
+   ki bilgi kaybolmasın. */
+.rfx-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--gold);
+  text-align: center;
+  line-height: 1.7;
+}
+.rfx-note:empty { display: none; }
+
+/* --- yükseliş: aşağıdan gelir, oturur, halka dışa açılır --- */
+#rankFx.up .rfx-emblem { animation: rfxUp .9s cubic-bezier(.18,1.5,.4,1) both; }
+#rankFx.up .rfx-glow   { animation: rfxGlow 1.5s ease-out both .18s; }
+#rankFx.up .rfx-word   { animation: rfxWord .55s ease-out both .5s; }
+#rankFx.up .rfx-rank   { animation: rfxWord .55s ease-out both .66s; }
+
+@keyframes rfxUp {
+  0%   { transform: translateY(46px) scale(.42); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes rfxGlow {
+  0%   { transform: scale(.3); opacity: 0; }
+  38%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: .55; }
+}
+@keyframes rfxWord {
+  0%   { transform: translateY(9px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* --- düşüş: yukarıdan iner, ağırlaşır, ışık söner --- */
+#rankFx.down .rfx-emblem { animation: rfxDown 1s cubic-bezier(.4,0,.6,1) both; }
+#rankFx.down .rfx-glow   { animation: rfxDim 1.2s ease-out both; }
+#rankFx.down .rfx-word   { animation: rfxWord .5s ease-out both .42s; color: #ffb0a0; }
+#rankFx.down .rfx-rank   { animation: rfxWord .5s ease-out both .56s; }
+
+@keyframes rfxDown {
+  0%   { transform: translateY(-30px) scale(1.14); opacity: 0; filter: none; }
+  40%  { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(12px) scale(.94); opacity: .72; }
+}
+@keyframes rfxDim {
+  0%   { transform: scale(1.1); opacity: .85; }
+  100% { transform: scale(.72); opacity: .18; }
+}
+
+/* ---------------- paket satın alma sayfası ---------------- */
+
+#buySheet {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,7,13,.86);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 22;
+  animation: fadein .22s ease;
+}
+#buySheet[hidden] { display: none; }
+
+.sheet-card {
+  background: linear-gradient(var(--panel-2), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px 22px 20px;
+  text-align: center;
+  width: 100%;
+  max-width: 300px;
+}
+.sheet-title { font-size: 20px; font-weight: 800; }
+.sheet-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.sheet-sub b { color: var(--gold); }
+
+.qty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 18px 0 10px;
+}
+.qty button {
+  width: 44px; height: 44px;          /* dokunma hedefi — 44pt kuralı */
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.qty button:active { transform: scale(.94); }
+.qty button:disabled { opacity: .3; }
+#qtyVal {
+  min-width: 46px;
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ghost.small { font-size: 11.5px; padding: 6px 10px; margin-bottom: 4px; }
+.ghost.small[hidden] { display: none; }
+
+.sheet-total {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 10px 0 16px;
+}
+.sheet-total b { color: var(--gold); font-size: 15px; }
+.sheet-note { display: block; font-size: 11px; margin-top: 3px; opacity: .75; }
+
+/* Parası yetmiyor: tutar ve eksik kırmızıya dönüyor, sebep yazıyla söyleniyor. */
+.sheet-total.eksik b { color: #ffb0a0; }
+.sheet-total.eksik .sheet-note { color: #ffb0a0; opacity: 1; font-weight: 700; }
+
+/* short phones */
+@media (max-height: 700px) {
+  #log { height: 36px; }   /* 2 satır */
+  .unit { padding: 6px 7px 7px; }
+
+  /* Tahta genişlik sınırı sadece YEDEK yolda gerekli. Kesin ölçümde yükseklik
+     kısıtı zaten devrede; buradaki sınır hücre hesabını kırpıp taşmaya yol açar. */
+  @supports not (container-type: size) {
+    #board { max-width: 320px; }
+  }
+}
+
+</style>
+
+<div id="root">
+
+  <!-- ---------- AÇILIŞ ---------- -->
+  <section class="screen" id="scr-loading">
+    <div class="load-stage">
+      <i class="load-orb" data-el="fire"></i>
+      <i class="load-orb" data-el="ice"></i>
+      <i class="load-orb" data-el="bolt"></i>
+      <i class="load-orb" data-el="nature"></i>
+      <i class="load-orb" data-el="wind"></i>
+      <i class="load-orb" data-el="arcane"></i>
+      <div class="load-mark" id="loadMark"></div>
+    </div>
+    <h1 class="load-title">RUNE CLASH</h1>
+    <div class="load-bar"><i id="loadFill"></i></div>
+    <div class="load-tip" id="loadTip"></div>
+  </section>
+
+  <!-- ---------- PAKET ---------- -->
+  <!-- Paket her seferinde JS'te sıfırdan kuruluyor: yırtılmış hâlin geri
+       sarması diye bir şey olmasın. -->
+  <section class="screen" id="scr-pack">
+    <div class="pack-head" id="packHead">İlk paketin</div>
+    <div class="pack-stage">
+      <div id="packSlot"></div>
+      <div class="pack-cards" id="packCards"></div>
+    </div>
+    <button id="packBtn" class="primary">PAKETİ AÇ</button>
+  </section>
+
+  <!-- ---------- GANİMET ---------- -->
+  <section class="screen" id="scr-haul">
+    <header class="haul-top">
+      <span class="haul-title">Koleksiyonuna eklendi</span>
+      <span class="haul-sub" id="haulSub"></span>
+    </header>
+    <div class="haul-grid" id="haulGrid"></div>
+    <button id="haulBtn" class="primary">DESTEYE GÖNDER</button>
+  </section>
+
+  <!-- ---------- DESTE ---------- -->
+  <section class="screen" id="scr-deck">
+    <header class="deck-top">
+      <button id="deckBack" class="icon" aria-label="Geri">‹</button>
+      <span class="deck-title">Desteni Kur</span>
+      <span class="deck-count" id="deckCount">0/3</span>
+    </header>
+    <div class="deck-slots" id="deckSlots"></div>
+
+    <div class="deck-tools">
+      <div class="seg" id="deckSort">
+        <button data-sort="power" class="on">Güç</button>
+        <button data-sort="element">Element</button>
+        <button data-sort="rarity">Nadirlik</button>
+      </div>
+      <div class="chips" id="deckFilter"></div>
+    </div>
+
+    <div class="section-label">Koleksiyonun <span id="deckOwned"></span></div>
+    <div class="deck-grid" id="deckGrid"></div>
+    <button id="deckSave" class="primary">KAYDET</button>
+  </section>
+
+  <!-- ---------- LOBİ ---------- -->
+  <section class="screen" id="scr-lobby">
+    <div class="brand">
+      <div class="brand-mark" id="brandMark"></div>
+      <h1>RUNE CLASH</h1>
+      <div class="online"><i class="dot"></i><span id="onlineCount">—</span> oyuncu çevrimiçi</div>
+    </div>
+
+    <div class="profile">
+      <div class="avatar" id="meAvatar">S</div>
+      <div class="pinfo">
+        <div class="pname">Sen</div>
+        <div class="pmeta"><span class="rank" id="meRank">—</span><span id="meLp"></span></div>
+      </div>
+      <div class="record" id="meRecord">0G 0M</div>
+    </div>
+
+    <!-- Cüzdan: Rune Coin ve paket satın alma. Paket Aç tuşunun hemen üstünde,
+         çünkü ikisi aynı işin iki ucu — biri stok, diğeri satın alma. -->
+    <div class="wallet">
+      <span class="wallet-amt"><span class="coin-ico" id="coinIco"></span><b id="coinCount">0</b> Rune Coin</span>
+      <button id="buyPackBtn" class="wallet-buy">PAKET AL</button>
+    </div>
+
+    <div class="section-label">Desten</div>
+    <div class="team-strip" id="lobbyTeam"></div>
+
+    <!-- Maç Ara en altta: başparmağın doğal yeri ve en sık basılan tuş. -->
+    <div class="lobby-actions">
+      <div class="lobby-row">
+        <button id="deckBtn" class="tile">
+          <span class="tile-ico" id="deckIco"></span>
+          <span class="tile-txt">Desteni Kur</span>
+          <span class="tile-sub" id="deckSub">3 kart</span>
+        </button>
+        <button id="openPackBtn" class="tile">
+          <span class="tile-ico" id="packIco"></span>
+          <span class="tile-txt">Paket Aç</span>
+          <span class="tile-sub" id="packSub">yok</span>
+          <span class="tile-badge" id="packBadge" hidden></span>
+        </button>
+      </div>
+      <button id="findBtn" class="primary">MAÇ ARA</button>
+      <div class="lobby-foot">
+        <button id="resetBtn">kaydı sıfırla</button>
+        <span id="buildTag"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- ARAMA ---------- -->
+  <section class="screen" id="scr-search">
+    <div class="radar">
+      <i class="ring r1"></i><i class="ring r2"></i><i class="ring r3"></i>
+      <div class="radar-core" id="radarCore"></div>
+    </div>
+    <div class="search-text" id="searchText">Rakip aranıyor…</div>
+    <div class="search-timer" id="searchTimer">0.0s</div>
+    <button id="cancelBtn" class="ghost">Vazgeç</button>
+  </section>
+
+  <!-- ---------- EŞLEŞME ---------- -->
+  <!-- Sıralama savaş ekranıyla aynı: rakip üstte, sen altta.
+       Aynı maçın iki farklı düzeni olmamalı. -->
+  <section class="screen" id="scr-versus">
+    <div class="vs-side vs-them">
+      <div class="vs-head">
+        <div class="avatar" id="vsFoeAvatar">?</div>
+        <div class="pinfo">
+          <div class="pname" id="vsFoeName">—</div>
+          <div class="pmeta"><span class="rank" id="vsFoeRank">—</span> · Sv <span id="vsFoeLevel">—</span></div>
+        </div>
+      </div>
+      <div class="team-strip" id="vsFoeTeam"></div>
+    </div>
+
+    <div class="vs-badge">VS</div>
+
+    <div class="vs-side vs-me">
+      <div class="vs-head">
+        <div class="avatar" id="vsMeAvatar">S</div>
+        <div class="pinfo">
+          <div class="pname">Sen</div>
+          <div class="pmeta"><span class="rank" id="vsMeRank">Gümüş II</span> · Sv <span id="vsMeLevel">14</span></div>
+        </div>
+      </div>
+      <div class="team-strip" id="vsMeTeam"></div>
+    </div>
+  </section>
+
+  <!-- ---------- SAVAŞ ---------- -->
+  <section class="screen" id="scr-battle">
+    <div id="app">
+
+      <header id="topbar">
+        <div class="round">TUR <span id="roundNo">1</span></div>
+        <div id="turnBanner" class="turn-player">Senin sıran</div>
+        <button id="leaveBtn" aria-label="Maçtan ayrıl">✕</button>
+      </header>
+
+      <div class="foe-bar">
+        <div class="avatar sm" id="foeAvatar">?</div>
+        <span class="fname" id="foeName">—</span>
+        <span class="fmeta" id="foeMeta">—</span>
+      </div>
+
+      <section class="team-strip" id="aiTeam" aria-label="Rakip takım"></section>
+
+      <section id="boardWrap">
+        <div id="board" role="grid" aria-label="Rune tahtası"></div>
+      </section>
+
+      <section class="team-strip mine" id="playerTeam" aria-label="Senin takımın"></section>
+
+      <section id="log" aria-live="polite"></section>
+
+    </div>
+    <div id="fx" aria-hidden="true"></div>
+  </section>
+
+</div>
+
+<div id="overlay" hidden>
+  <div class="over-card">
+    <div id="overTitle"></div>
+    <div id="overSub"></div>
+    <div id="overRewards"></div>
+    <button id="againBtn" class="primary">Yeni maç ara</button>
+    <button id="lobbyBtn" class="ghost">Lobiye dön</button>
+  </div>
+</div>
+
+<!-- Rütbe değişimi anı. Sonuç ekranından ÖNCE oynuyor: rütbe atlamak maçın
+     kendisinden büyük bir olay, ödül listesinin bir satırı olarak geçmemeli. -->
+<div id="rankFx" hidden>
+  <!-- Işık ve amblem üst üste; yazılar normal akışta altlarında. -->
+  <div class="rfx-stage">
+    <div class="rfx-glow"></div>
+    <div class="rfx-emblem" id="rfxEmblem"></div>
+  </div>
+  <div class="rfx-word" id="rfxWord"></div>
+  <div class="rfx-rank" id="rfxRank"></div>
+  <div class="rfx-note" id="rfxNote"></div>
+</div>
+
+<!-- Paket satın alma. Adet seçilebiliyor: coin biriktirip tek seferde
+     birkaç paket almak isteyen oyuncu tek tek satın almak zorunda kalmasın. -->
+<div id="buySheet" hidden>
+  <div class="sheet-card">
+    <div class="sheet-title">Paket Al</div>
+    <div class="sheet-sub">Paket başına <b id="packPrice">5</b> Rune Coin</div>
+    <div class="qty">
+      <button id="qtyMinus" aria-label="azalt">−</button>
+      <span id="qtyVal">1</span>
+      <button id="qtyPlus" aria-label="artır">+</button>
+    </div>
+    <button id="qtyMax" class="ghost small">alabildiğim kadar</button>
+    <div class="sheet-total" id="buyTotal"></div>
+    <button id="buyConfirm" class="primary">SATIN AL</button>
+    <button id="buyCancel" class="ghost">vazgeç</button>
+  </div>
+</div>
+
+<!-- Ekranlar arası uçan kartlar burada — hiçbir ekrana ait değil. -->
+<div id="fly" aria-hidden="true"></div>
+
+<!-- Kaçış yolu: /?sifirla ile aç, kayıt silinsin.
+     Lobideki "kaydı sıfırla" düğmesi app.js'in SONUNDA bağlanıyor; ondan önce
+     herhangi bir betik hata verirse o bağlantı hiç kurulmuyor ve düğme sessizce
+     ölüyor. Bu blok tüm betiklerden önce ve hiçbir şeye bağlı olmadan çalışıyor,
+     yani oyun tamamen bozuk olsa bile sıfırlama elde kalıyor.
+     Adres çubuğu temizleniyor ki yenilemede tekrar silmesin. -->
+<script>
+  if (location.search.includes('sifirla')) {
+    try { localStorage.removeItem('rc_save_v1'); } catch {}
+    location.replace(location.pathname);
+  }
+</script>
+
+
+<script>window.__ICONS = {"arcane":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"6.113\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- kadim muhru — renk verme, kod currentColor ile boyuyor.\n       Illustrator cizimi (81.5x81.5) 100x100 kutuya oturtuldu. -->\n  <g transform=\"scale(1.22699)\">\n    <circle fill=\"currentColor\" fill-opacity=\".35\" cx=\"40.75\" cy=\"40.75\" r=\"37\"/>\n    <path fill=\"currentColor\" stroke=\"none\"\n          d=\"M40.75,16.75c3,17,7,21,24,24-17,3-21,7-24,24-3-17-7-21-24-24,17-3,21-7,24-24Z\"/>\n  </g>\n</svg>","bolt":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"7.5\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- yıldırım elementi — RENK VERME, kod currentColor ile boyuyor -->\n  <path d=\"M58 6 L28 52 L47 52 L40 94 L72 44 L52 44 Z\" fill=\"currentColor\" stroke=\"none\"/>\n</svg>","fire":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"6.713\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- ates — renk verme, kod currentColor ile boyuyor.\n       Illustrator cizimi (67.5x89.5) olcek korunarak 100x100 kutuya oturtuldu.\n       stroke-width olcekle carpilinca 7.5 ediyor — diger ikonlarla ayni kalinlik. -->\n  <g transform=\"translate(12.29 0) scale(1.11732)\">\n    <path fill=\"currentColor\" fill-opacity=\".35\"\n          d=\"M33.75,3.75c14,22,30,34,30,52,0,16.57-13.43,30-30,30S3.75,72.32,3.75,55.75c0-15,11-21,17-35,4,14,10,20,14,16,6-8,3-22-1-33Z\"/>\n    <path fill=\"currentColor\" stroke=\"none\"\n          d=\"M33.75,43.75c7,12,12,18,12,25,0,6.63-5.37,12-12,12s-12-5.37-12-12c0-7,5-13,12-25Z\"/>\n  </g>\n</svg>","ice":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"7.5\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- buz elementi — RENK VERME, kod currentColor ile boyuyor -->\n  <g transform=\"rotate(0 50 50)\"><path d=\"M50 50 L50 9\"/><path d=\"M50 25 L41 16\"/><path d=\"M50 25 L59 16\"/></g><g transform=\"rotate(60 50 50)\"><path d=\"M50 50 L50 9\"/><path d=\"M50 25 L41 16\"/><path d=\"M50 25 L59 16\"/></g><g transform=\"rotate(120 50 50)\"><path d=\"M50 50 L50 9\"/><path d=\"M50 25 L41 16\"/><path d=\"M50 25 L59 16\"/></g><g transform=\"rotate(180 50 50)\"><path d=\"M50 50 L50 9\"/><path d=\"M50 25 L41 16\"/><path d=\"M50 25 L59 16\"/></g><g transform=\"rotate(240 50 50)\"><path d=\"M50 50 L50 9\"/><path d=\"M50 25 L41 16\"/><path d=\"M50 25 L59 16\"/></g><g transform=\"rotate(300 50 50)\"><path d=\"M50 50 L50 9\"/><path d=\"M50 25 L41 16\"/><path d=\"M50 25 L59 16\"/></g>\n</svg>","mark":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"5\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- oyun amblemi (logo, kart arkası, radar) — RENK VERME, kod currentColor ile boyuyor -->\n  <path d=\"M50 6 L94 50 L50 94 L6 50 Z\"/>\n  <path d=\"M50 24 L50 76\"/>\n  <path d=\"M64 38 L50 50 L64 62\"/>\n  <path d=\"M36 38 L50 50 L36 62\"/>\n</svg>","nature":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"6.863\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- doga yapragi — renk verme, kod currentColor ile boyuyor.\n       Illustrator cizimi (57.01x91.5) 100x100 kutuya oturtuldu, yatayda ortalandi. -->\n  <g transform=\"translate(18.85 0) scale(1.09290)\">\n    <path fill=\"currentColor\" fill-opacity=\".35\"\n          d=\"M28.51,87.75C-3.49,65.75-5.49,29.75,28.51,3.75c34,26,32,62,0,84Z\"/>\n    <path d=\"M28.51,83.75V17.75\"/>\n    <path d=\"M28.51,37.75l-17-10\"/>\n    <path d=\"M28.51,37.75l17-10\"/>\n    <path d=\"M28.51,57.75l-15-8\"/>\n    <path d=\"M28.51,57.75l15-8\"/>\n  </g>\n</svg>","rune-mark":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"4\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- tahtadaki kapalı kartın amblemi — RENK VERME, kod currentColor ile boyuyor -->\n  <path d=\"M50 8 L88 50 L50 92 L12 50 Z\" stroke-width=\"4\"/>\n  <path d=\"M50 24 L72 50 L50 76 L28 50 Z\" stroke-width=\"3\" opacity=\".65\"/>\n  <path d=\"M50 38 L61 50 L50 62 L39 50 Z\" fill=\"currentColor\" stroke=\"none\" opacity=\".5\"/>\n  <path d=\"M50 2 L50 8 M50 92 L50 98 M2 50 L12 50 M88 50 L98 50\" stroke-width=\"3\" opacity=\".5\"/>\n</svg>","ui-deck":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.06\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- \"Desteni Kur\" tusu — renk verme, kod currentColor ile boyuyor.\n       Illustrator cizimi (14.97x14.43) 24x24 kutuya oturtuldu, dikeyde ortalandi.\n       stroke-width olcekle carpilinca 1.7 ediyor — ui-pack ile ayni. -->\n  <g transform=\"translate(0 0.43) scale(1.60321)\">\n    <rect x=\".5\" y=\".93\" width=\"9\" height=\"13\" rx=\"1.6\" ry=\"1.6\"/>\n    <path d=\"M3.53.75h7.2c.88,0,1.6.72,1.6,1.6v11\"/>\n    <path d=\"M6.37.5h6.5c.88,0,1.6.72,1.6,1.6h0v9.6\"/>\n    <rect fill=\"currentColor\" fill-opacity=\".35\" x=\"1.05\" y=\"1.64\" width=\"7.69\" height=\"11.31\"/>\n  </g>\n</svg>","ui-pack":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.566\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- \"Paket Ac\" tusu — renk verme, kod currentColor ile boyuyor.\n       Illustrator cizimi (21.46x22.11) 24x24 kutuya oturtuldu, yatayda ortalandi.\n       Uc kart ust uste: arkadakiler saydam, ondeki dolu. -->\n  <g transform=\"translate(0.35 0) scale(1.08548)\">\n    <rect fill=\"currentColor\" fill-opacity=\".22\" stroke=\"none\"\n          x=\"1.62\" y=\".98\" width=\"14.79\" height=\"20.15\" rx=\"2\" ry=\"2\"\n          transform=\"translate(-2.18 2.22) rotate(-12.52)\"/>\n    <rect fill=\"currentColor\" fill-opacity=\".35\" stroke=\"none\"\n          x=\"5.4\" y=\".98\" width=\"14.79\" height=\"20.15\" rx=\"2\" ry=\"2\"\n          transform=\"translate(2.03 -1.99) rotate(9.64)\"/>\n    <rect fill=\"currentColor\" x=\"3.25\" y=\".98\" width=\"14.79\" height=\"20.15\" rx=\"2\" ry=\"2\"/>\n  </g>\n</svg>","wind":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"\n     fill=\"none\" stroke=\"currentColor\" stroke-width=\"7.5\"\n     stroke-linecap=\"round\" stroke-linejoin=\"round\">\n  <!-- rüzgar elementi — RENK VERME, kod currentColor ile boyuyor -->\n  <path d=\"M12 32 H52 C64 32 64 17 53 20\"/>\n         <path d=\"M12 52 H66 C80 52 80 71 65 67\"/>\n         <path d=\"M12 72 H42 C52 72 52 84 44 81\"/>\n</svg>"};</script>
+<script>
+/* ===== game.js ===== */
+/* Rune Clash — çekirdek döngü prototipi
+ *
+ * Test ettiğimiz tek soru: kart çevirip saldırı tetiklemek gergin ve tatmin edici mi?
+ * Kurallar için bkz. docs/fikirler.md
+ */
+
+/* ---------------- ayarlanabilir sayılar ---------------- */
+
+const CFG = {
+  maxHp:        35,
+  // Tahta: 6 elementin 5'i çıkar, 8 çift eşitsiz dağıtılır (3 element 2'şer,
+  // 2 element 1'er) = 16 kart. Şans "var mı yok mu" değil "kaç tane var".
+  boardElements: 5,
+  boardPairs:    8,
+  elemBase:      1,    // her elementin taban çekiliş ağırlığı
+  elemBias:      3,    // destende olan elemente eklenen ağırlık (oyuncu VE rakip)
+  maxChain:     3,     // aynı taraf üst üste en fazla kaç hasarlı eşleşme yapabilir
+
+  // aiRecall tek başına tüm zorluk kadranı — 60'ar maçlık simülasyonla ölçüldü.
+  // Ortalama bir oyuncuya karşı kazanma oranın: 0.35 → %58 | 0.45 → %35 | 0.55 → %22 | 0.78 → %10
+  aiRecall:     0.35,  // AI açılan bir kartı hatırlama olasılığı
+  aiForget:     0.12,  // her turda bir anıyı unutma olasılığı
+  aiDenyChance: 0.55,  // işine yaramayan ama oyuncunun işine yarayan çifti alma eğilimi
+                       // (ölçüldü: dengeye etkisi ihmal edilebilir, his için duruyor)
+
+  // süreler (ms) — hepsi burada, böylece 0'a çekip hızlı simülasyon koşabiliyoruz
+  // Kaçırınca ikinci kartı okumak için zaman gerekiyor; tutturunca gerekmiyor —
+  // tuttuğunu kart döner dönmez görüyorsun. Eşleşme daha çabuk ödüllendirilmeli.
+  flipPeek:     430,   // eşleşMEyen kartların açık kaldığı süre
+  matchPeek:    170,   // eşleşenlerin birleşmeye başlamadan önceki anı
+  aiThink:      520,   // AI'ın "düşünme" duraklaması
+  mergeFlight:  300,   // eşleşen iki kartın kalkıp birleşmesi
+  mergePop:     130,   // saldırı başlamadan önceki an
+  mergeGlyph:   560,   // doğan rune'un oluş–dur–dağıl süresi
+                       // (mergePop'tan uzun: rune saldırı başlarken dağılmaya devam eder)
+  // Tek vuruşun toplam süresi ≈ spellCast + lunge + spellTravel + hitHold.
+  // Bir eşleşmede 2 karakter saldırabiliyor, bir maçta ~23 eşleşme var —
+  // buradaki her 50ms, maç başına ~2 saniyeye dönüşüyor. Cömert davranma.
+  spellCast:    120,   // büyü öncesi hazırlık (her element kendi çarpanını uygular)
+  spellTravel:  280,   // merminin yol alma süresi (elemente göre 0.34x–1.0x)
+  spellImpact:  240,   // çarpma efektinin süresi
+  lunge:         90,   // saldıranın geri tepmesi
+  hitHold:      180,   // vuruş sarsıntısının kalma süresi
+  boardSwap:    480,   // tahta yenilenmeden önceki bekleme
+
+  // kart dağıtımı — boş tahta bir an görünsün, sonra kartlar hızlıca yerlerine
+  dealDelay:    200,   // dağıtımdan önce boş grid'in görüldüğü an
+  dealCard:     360,   // tek kartın uçuş süresi
+  dealStagger:   26,   // kartlar arası gecikme (16 kart ≈ 980ms toplam)
+};
+
+// CFG içindeki tüm süre alanları — hızlı simülasyon bunları sıfırlar
+const TIMING_KEYS = [
+  'flipPeek', 'matchPeek', 'aiThink', 'mergeFlight', 'mergePop', 'mergeGlyph',
+  'spellCast', 'spellTravel', 'spellImpact',
+  'lunge', 'hitHold', 'boardSwap',
+  'dealDelay', 'dealCard', 'dealStagger',
+];
+
+const DEFAULT_TIMINGS = Object.fromEntries(TIMING_KEYS.map((k) => [k, CFG[k]]));
+
+/** fastMode(true) → tüm animasyonlar kapanır, denge simülasyonu anında koşar. */
+function fastMode(on) {
+  for (const k of TIMING_KEYS) CFG[k] = on ? 0 : DEFAULT_TIMINGS[k];
+}
+
+const ELEMENTS = {
+  fire:   { name: 'Ateş',     color: 'var(--fire)'   },
+  ice:    { name: 'Buz',      color: 'var(--ice)'    },
+  bolt:   { name: 'Yıldırım', color: 'var(--bolt)'   },
+  nature: { name: 'Doğa',     color: 'var(--nature)' },
+  wind:   { name: 'Rüzgar',   color: 'var(--wind)'   },
+  arcane: { name: 'Kadim',    color: 'var(--arcane)' },
+};
+
+/* Element sembolleri.
+ *
+ * Önce runik alfabe harfleri kullanılıyordu — ama bunlar bir alfabe değil,
+ * elementleri temsil eden işaretler. Ateş harfi değil, ateş olmalı.
+ *
+ * Altısı da 14px'te (filtre çipi) ayırt edilebiliyor; siluetleri kasten farklı:
+ * damla · yıldız · zikzak · yaprak · yatay akış · daire.
+ */
+const ELEMENT_ART = {
+  fire: `<path d="M50 8 C64 30 80 42 80 60 A30 30 0 0 1 20 60 C20 45 31 39 37 25 C41 39 47 45 51 41 C57 33 54 19 50 8 Z"/>
+         <path d="M50 48 C57 60 62 66 62 73 A12 12 0 0 1 38 73 C38 66 43 60 50 48 Z" fill="currentColor" stroke="none"/>`,
+
+  ice: [0, 60, 120, 180, 240, 300]
+    .map((a) => `<g transform="rotate(${a} 50 50)"><path d="M50 50 L50 9"/><path d="M50 25 L41 16"/><path d="M50 25 L59 16"/></g>`)
+    .join(''),
+
+  bolt: `<path d="M58 6 L28 52 L47 52 L40 94 L72 44 L52 44 Z" fill="currentColor" stroke="none"/>`,
+
+  nature: `<path d="M50 92 C18 70 16 34 50 8 C84 34 82 70 50 92 Z"/>
+           <path d="M50 88 L50 22"/>
+           <path d="M50 42 L33 32"/><path d="M50 42 L67 32"/>
+           <path d="M50 62 L35 54"/><path d="M50 62 L65 54"/>`,
+
+  wind: `<path d="M12 32 H52 C64 32 64 17 53 20"/>
+         <path d="M12 52 H66 C80 52 80 71 65 67"/>
+         <path d="M12 72 H42 C52 72 52 84 44 81"/>`,
+
+  arcane: `<circle cx="50" cy="50" r="37"/>
+           <path d="M50 26 C53 43 57 47 74 50 C57 53 53 57 50 74 C47 57 43 53 26 50 C43 47 47 43 50 26 Z" fill="currentColor" stroke="none"/>`,
+};
+
+// Oyuncunun takımı koleksiyondan kurulur — bkz. champions.js / playerSquad().
+// Rakip her maçta üretilir ve gücü oyuncununkine eşitlenir (bkz. makeFoe).
+
+/* ---------------- yardımcılar ---------------- */
+
+const $ = (sel, root = document) => root.querySelector(sel);
+// süre 0 ise mikrogöreve düşer — böylece CFG süreleri sıfırlanınca
+// simülasyon tarayıcının 4ms setTimeout tabanına takılmadan koşar
+const sleep = (ms) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve());
+const other = (side) => (side === 'player' ? 'ai' : 'player');
+const sideName = (side) => (side === 'player' ? 'Sen' : S.foe.name);
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* Her ikon TAM bir SVG dizesi olarak tutuluyor. Böylece kullanıcı
+ * src/assets/icons/<ad>.svg koyunca dizeyi bütün olarak değiştirebiliyoruz —
+ * kendi viewBox'ı, kendi çizgi kalınlığı geçerli oluyor. Bkz. loadIcons(). */
+const ICON_SVG = {};
+for (const [el, art] of Object.entries(ELEMENT_ART)) {
+  ICON_SVG[el] = `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor"
+    stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round">${art}</svg>`;
+}
+
+const elemIcon = (el) => ICON_SVG[el];
+
+// Kart arkası — tüm kartlarda aynı, gerçek bir deste gibi.
+// `let`: assets/icons/rune-mark.svg varsa onunla değiştiriliyor.
+let CARD_BACK_SVG = `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor"
+  stroke-linecap="round" stroke-linejoin="round">
+  <path d="M50 8 L88 50 L50 92 L12 50 Z" stroke-width="4"/>
+  <path d="M50 24 L72 50 L50 76 L28 50 Z" stroke-width="3" opacity=".65"/>
+  <path d="M50 38 L61 50 L50 62 L39 50 Z" fill="currentColor" stroke="none" opacity=".5"/>
+  <path d="M50 2 L50 8 M50 92 L50 98 M2 50 L12 50 M88 50 L98 50" stroke-width="3" opacity=".5"/>
+</svg>`;
+
+/** Bir rune kartının iki yüzü: kapalı arka + açık ön. */
+function cardHtml(el, i) {
+  const e = ELEMENTS[el];
+  return `
+    <button class="card" data-i="${i}" style="--c:${e.color}">
+      <span class="card-inner">
+        <span class="face cover">
+          <span class="cv-mark">${CARD_BACK_SVG}</span>
+        </span>
+        <span class="face rune">
+          <span class="rn-pip">${elemIcon(el)}</span>
+          <span class="rn-art">${elemIcon(el)}</span>
+          <span class="rn-name">${e.name}</span>
+        </span>
+      </span>
+    </button>`;
+}
+
+/* ---------------- durum ---------------- */
+
+let S;
+
+// app.js savaş bitince bunu çağırır: onBattleEnd('player' | 'ai')
+let onBattleEnd = () => {};
+
+/** Bir maç başlatır. foe: {name, level, rank, units:[{id,name,el,atk}]} */
+function startBattle(foe, onEnd) {
+  onBattleEnd = onEnd || (() => {});
+
+  const mine = playerSquad();
+
+  S = {
+    round: 1,
+    turn: 'player',
+    chain: 0,                        // sıradaki tarafın üst üste kaçıncı hasarlı eşleşmesi
+    busy: false,
+    over: null,
+    flipped: [],
+    foe,
+    board: makeBoard([mine, foe.units]),   // tahta iki tarafın elementlerini bilerek kurulur
+    aiMem: {},                       // kart indeksi -> element (AI'ın kusurlu hafızası)
+    teams: {
+      player: mine.map((c)      => ({ ...c, hp: CFG.maxHp })),
+      ai:     foe.units.map((c) => ({ ...c, hp: CFG.maxHp })),
+    },
+  };
+
+  $('#log').innerHTML = '';
+  $('#foeName').textContent = foe.name;
+  $('#foeMeta').textContent = `${foe.rank} · Sv ${foe.level}`;
+  $('#foeAvatar').textContent = foe.name[0].toUpperCase();
+  $('#foeAvatar').style.setProperty('--c', ELEMENTS[foe.units[0].el].color);
+
+  buildTeams();
+  syncHeader();
+  addLog('Bir rune çifti bul — o elementteki karakterlerin saldırsın.', 'sys');
+
+  // kartlar dağıtılırken tıklama kapalı
+  const dealMs = buildBoard();
+  if (dealMs > 0) {
+    const inst = S;
+    S.busy = true;
+    setTimeout(() => { if (S === inst) S.busy = false; }, dealMs);
+  }
+}
+
+/** Ağırlıklı, tekrarsız çekiliş: listeden n tane seçer. */
+function weightedSample(list, weight, n) {
+  const pool = [...list];
+  const out = [];
+  while (out.length < n && pool.length) {
+    const total = pool.reduce((s, el) => s + weight[el], 0);
+    let r = Math.random() * total;
+    let i = 0;
+    while (i < pool.length - 1 && (r -= weight[pool[i]]) > 0) i++;
+    out.push(pool.splice(i, 1)[0]);
+  }
+  return out;
+}
+
+/**
+ * Tahta kurulumu.
+ *
+ * 6 elementin `boardElements` kadarı çıkar ve `boardPairs` çift aralarında
+ * EŞİTSİZ dağıtılır — bazı elementler 2 çift, bazıları 1 çift alır.
+ *
+ * Neden böyle: önce 4 element × 2 çift vardı ve sana sadece bir element
+ * garantiliydi. Destendeki diğer elementlerin tahta başına şansı ~2/3'tü, yani
+ * üst üste iki tur kaçırmak %11 ihtimalle oluyordu — ve kötü hissettiriyordu.
+ * Şimdi şans "var mı yok mu" ikiliği değil, "kaç çifti var" gradyanı.
+ *
+ * Her iki tarafın elementleri hem SEÇİLMEKTE hem de ÇİFT ALMAKTA ağırlıklı;
+ * garanti değil, sadece daha olası.
+ *
+ * @param sides [oyuncuKadrosu, rakipKadrosu]
+ */
+function makeBoard(sides = []) {
+  const all = Object.keys(ELEMENTS);
+  const weight = Object.fromEntries(all.map((el) => [el, CFG.elemBase]));
+
+  for (const units of sides) {
+    const alive = units.filter((u) => u.hp === undefined || u.hp > 0);
+    for (const el of new Set(alive.map((u) => u.el))) weight[el] += CFG.elemBias;
+  }
+
+  // 1) her tarafa en az bir element — tamamen ölü tahtaya karşı taban güvence
+  const picked = [];
+  for (const units of sides) {
+    const alive = units.filter((u) => u.hp === undefined || u.hp > 0);
+    const own = shuffle([...new Set(alive.map((u) => u.el))]);
+    const need = own.find((el) => !picked.includes(el));
+    if (need && picked.length < CFG.boardElements) picked.push(need);
+  }
+
+  // 2) kalan yerler ağırlıklı çekilişle
+  picked.push(
+    ...weightedSample(all.filter((el) => !picked.includes(el)), weight,
+                      CFG.boardElements - picked.length)
+  );
+
+  // 3) çiftleri dağıt: herkese 1, artanları ağırlıklı olarak ikinci çifte
+  const pairs = Object.fromEntries(picked.map((el) => [el, 1]));
+  const extra = CFG.boardPairs - picked.length;
+  for (const el of weightedSample(picked, weight, extra)) pairs[el] = 2;
+
+  const cards = [];
+  for (const [el, n] of Object.entries(pairs)) {
+    for (let i = 0; i < n * 2; i++) cards.push(el);
+  }
+  return shuffle(cards).map((el) => ({ el, up: false, matched: false }));
+}
+
+/* ---------------- DOM kurulumu ---------------- */
+
+function buildTeams() {
+  for (const side of ['player', 'ai']) {
+    const host = $(side === 'player' ? '#playerTeam' : '#aiTeam');
+    host.innerHTML = S.teams[side]
+      .map(
+        (c) => `
+      <div class="unit" id="u-${c.id}" style="--c:${ELEMENTS[c.el].color}">
+        <div class="row1">
+          <span class="glyph">${elemIcon(c.el)}</span>
+          <span class="name">${c.name}</span>
+          <span class="atk">${c.atk}</span>
+        </div>
+        <div class="hpbar"><div class="hpfill"></div></div>
+        <div class="hptext"></div>
+      </div>`
+      )
+      .join('');
+  }
+  syncTeams();
+}
+
+/** Tahtayı kurar ve kartları dağıtır. Dağıtımın toplam süresini (ms) döndürür. */
+function buildBoard() {
+  // Yuvalar hep duruyor: kartlar gelmeden önce nereye geleceklerini gösteriyorlar,
+  // kartlar kalktıktan sonra da yerin boşaldığını.
+  $('#board').innerHTML = S.board
+    .map((c, i) => `<span class="slot">${cardHtml(c.el, i)}</span>`)
+    .join('');
+  syncBoard();
+  return dealBoard();
+}
+
+const cardNode = (i) => $(`.card[data-i="${i}"]`, $('#board'));
+
+/* ---------------- ekrana yansıtma ---------------- */
+
+function syncBoard() {
+  const cards = $('#board').querySelectorAll('.card');
+  S.board.forEach((c, i) => {
+    cards[i].classList.toggle('up', c.up);
+    cards[i].classList.toggle('matched', c.matched);
+  });
+}
+
+function syncTeams() {
+  for (const side of ['player', 'ai']) {
+    for (const c of S.teams[side]) {
+      const el = $('#u-' + c.id);
+      const pct = (c.hp / CFG.maxHp) * 100;
+      $('.hpfill', el).style.width = pct + '%';
+      $('.hptext', el).textContent = c.hp + ' / ' + CFG.maxHp;
+      el.classList.toggle('low', pct <= 35);
+      el.classList.toggle('dead', c.hp === 0);
+    }
+  }
+}
+
+function syncHeader() {
+  $('#roundNo').textContent = S.round;
+  const b = $('#turnBanner');
+  const mine = S.turn === 'player';
+  b.textContent = mine ? 'Senin sıran' : 'Rakip düşünüyor…';
+  b.className = mine ? 'turn-player' : 'turn-ai';
+}
+
+function addLog(text, kind = '') {
+  const log = $('#log');
+  const row = document.createElement('div');
+  row.className = kind ? 'l-' + kind : '';
+  row.textContent = text;
+  log.prepend(row);
+  while (log.children.length > 3) log.lastChild.remove();
+}
+
+function floatDmg(unitEl, amount, colorVar) {
+  const d = document.createElement('div');
+  d.className = 'dmg';
+  d.style.color = colorVar;
+  d.textContent = '-' + amount;
+  unitEl.appendChild(d);
+  setTimeout(() => d.remove(), 800);
+}
+
+/* ---------------- tur akışı ---------------- */
+
+function reveal(i) {
+  const c = S.board[i];
+  if (!c || c.up || c.matched || S.flipped.length >= 2) return false;
+  c.up = true;
+  S.flipped.push(i);
+  aiRemember(i, c.el);
+  syncBoard();
+  return true;
+}
+
+async function tapCard(i) {
+  if (S.over || S.busy || S.turn !== 'player') return;
+  if (!reveal(i)) return;
+  if (S.flipped.length < 2) return;
+
+  S.busy = true;
+  try {
+    await resolve('player');
+    while (S.turn === 'ai' && !S.over) await aiTurn();
+  } finally {
+    // hata olsa bile oyun kilitli kalmasın
+    S.busy = false;
+  }
+}
+
+async function resolve(side) {
+  const [a, b] = S.flipped;
+  S.flipped = [];
+  const ca = S.board[a];
+  const cb = S.board[b];
+
+  await sleep(ca.el === cb.el ? CFG.matchPeek : CFG.flipPeek);
+
+  if (ca.el !== cb.el) {
+    ca.up = cb.up = false;
+    syncBoard();
+    passTurn(side);
+    syncHeader();
+    return;
+  }
+
+  // eşleşme
+  ca.matched = cb.matched = true;
+  await mergePair(a, b, ca.el);   // iki kart kalkar, birleşir, büyüyü doğurur
+  syncBoard();
+
+  const dealt = await doAttack(side, ca.el);
+
+  if (dealt === 0) {
+    // boşa giden eşleşme: kartlar kalktı ama sıra devrediliyor
+    passTurn(side);
+  } else if (++S.chain >= CFG.maxChain) {
+    // hasar veren eşleşme sırayı korur — ama sonsuza kadar değil
+    addLog(`${CFG.maxChain}'lü zincir doldu, sıra geçti.`, 'sys');
+    passTurn(side);
+  }
+
+  checkOver();
+  if (!S.over) await maybeNewBoard();
+  syncHeader();
+}
+
+function passTurn(side) {
+  S.turn = other(side);
+  S.chain = 0;
+}
+
+async function doAttack(side, el) {
+  const attackers = S.teams[side].filter((c) => c.hp > 0 && c.el === el);
+  const foes = S.teams[other(side)];
+  const elName = ELEMENTS[el].name;
+
+  if (attackers.length === 0) {
+    addLog(`${sideName(side)}: ${elName} çifti — o elementte karakter yok, sıra geçti.`, side);
+    return 0;
+  }
+
+  addLog(`${sideName(side)}: ${elName} çifti! ${attackers.length} karakter saldırıyor.`, side);
+
+  let total = 0;
+  for (const a of attackers) {
+    const target = foes.find((f) => f.hp > 0);
+    if (!target) break;
+    await strike(a, target);
+    total += a.atk;
+  }
+  return total;
+}
+
+async function strike(attacker, target) {
+  const aEl = $('#u-' + attacker.id);
+  const tEl = $('#u-' + target.id);
+
+  // 1) hazırlık — caster kendi renginde toplanır, rune mührü parlar
+  await windUp(attacker.el, aEl);
+
+  // 2) fırlatma — geri tepme
+  aEl.classList.add('attacking');
+  await sleep(CFG.lunge);
+  aEl.classList.remove('attacking');
+
+  // 3) büyü yola çıkar; çözüldüğü an çarpma anıdır
+  await castSpell(attacker.el, aEl, tEl);
+
+  // 4) hasar tam çarpma anında uygulanır
+  target.hp = Math.max(0, target.hp - attacker.atk);
+  tEl.classList.add('hit');
+  floatDmg(tEl, attacker.atk, ELEMENTS[attacker.el].color);
+  shake();
+  syncTeams();
+
+  await sleep(CFG.hitHold);
+  tEl.classList.remove('hit');
+
+  if (target.hp === 0) addLog(`${target.name} düştü.`, 'kill');
+}
+
+async function maybeNewBoard() {
+  if (!S.board.every((c) => c.matched)) return;
+  await sleep(CFG.boardSwap);
+  S.round++;
+  S.board = makeBoard([S.teams.player, S.teams.ai]);
+  S.aiMem = {};
+  addLog(`Tahta yenilendi — ${S.round}. tur. Rakip her şeyi unuttu.`, 'sys');
+  await sleep(buildBoard());   // yeni deste dağıtılana kadar bekle
+}
+
+function checkOver() {
+  const pAlive = S.teams.player.some((c) => c.hp > 0);
+  const aAlive = S.teams.ai.some((c) => c.hp > 0);
+  if (aAlive && pAlive) return;
+
+  S.over = aAlive ? 'ai' : 'player';
+  onBattleEnd(S.over);
+}
+
+/* ---------------- yapay zeka ---------------- */
+
+function aiRemember(i, el) {
+  if (Math.random() < CFG.aiRecall) S.aiMem[i] = el;
+}
+
+function aiKnownPairs() {
+  const byEl = {};
+  for (const [key, el] of Object.entries(S.aiMem)) {
+    const i = +key;
+    if (S.board[i].matched || S.board[i].up) continue;
+    (byEl[el] ||= []).push(i);
+  }
+  return Object.entries(byEl)
+    .filter(([, idxs]) => idxs.length >= 2)
+    .map(([el, idxs]) => ({ el, a: idxs[0], b: idxs[1] }));
+}
+
+const livingEls = (side) =>
+  new Set(S.teams[side].filter((c) => c.hp > 0).map((c) => c.el));
+
+// seçilebilir = eşleşmemiş VE şu an açık olmayan
+function selectable(pred = () => true) {
+  return S.board
+    .map((_, i) => i)
+    .filter((i) => !S.board[i].matched && !S.board[i].up && pred(i));
+}
+
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function aiPick() {
+  const pairs = aiKnownPairs();
+
+  // 1) hasar verecek bir çift biliyorsa onu oyna
+  const mine = livingEls('ai');
+  const good = pairs.find((p) => mine.has(p.el));
+  if (good) return [good.a, good.b];
+
+  // 2) oyuncunun işine yarayan bir çifti bazen engelle
+  const theirs = livingEls('player');
+  const deny = pairs.find((p) => theirs.has(p.el));
+  if (deny && Math.random() < CFG.aiDenyChance) return [deny.a, deny.b];
+
+  // 3) keşfet — önce hiç görmediği kartlar
+  let pool = selectable((i) => S.aiMem[i] === undefined);
+  if (!pool.length) pool = selectable();
+  return pool.length ? [pickRandom(pool)] : [];
+}
+
+function aiSecondPick(first) {
+  const el = S.board[first].el;
+
+  // ilk kartın eşini hatırlıyor mu?
+  for (const [key, e] of Object.entries(S.aiMem)) {
+    const i = +key;
+    if (i !== first && e === el && !S.board[i].matched && !S.board[i].up) return i;
+  }
+
+  let pool = selectable((i) => S.aiMem[i] === undefined);
+  if (!pool.length) pool = selectable();
+  return pool.length ? pickRandom(pool) : undefined;
+}
+
+async function aiTurn() {
+  // unutkanlık
+  const keys = Object.keys(S.aiMem);
+  if (keys.length && Math.random() < CFG.aiForget) delete S.aiMem[pickRandom(keys)];
+
+  await sleep(CFG.aiThink);
+  const picks = aiPick();
+
+  if (!reveal(picks[0])) { passTurn('ai'); syncHeader(); return; }
+  await sleep(CFG.flipPeek);
+
+  const second = picks.length > 1 ? picks[1] : aiSecondPick(picks[0]);
+  if (!reveal(second)) {
+    // seçilecek ikinci kart kalmadı — ilk kartı kapat, sırayı devret
+    S.board[picks[0]].up = false;
+    S.flipped = [];
+    syncBoard();
+    passTurn('ai');
+    syncHeader();
+    return;
+  }
+  await resolve('ai');
+}
+
+/* ---------------- bağlantılar ---------------- */
+
+$('#board').addEventListener('click', (e) => {
+  const card = e.target.closest('.card');
+  if (card) tapCard(+card.dataset.i);
+});
+
+// Ekran akışı ve maç başlatma app.js'te.
+
+
+/* ===== fx.js ===== */
+/* Rune Clash — büyü efektleri
+ *
+ * Tasarım kuralı: elementleri ayıran şey renk değil, ZAMANLAMA ve HAREKET.
+ * Aynı animasyonun dört rengi dört ayrı büyü gibi hissettirmiyor.
+ *
+ *   Ateş     → yavaş, yay çizerek uçar, patlar         (ağır, tehditkâr)
+ *   Buz      → hızlı, düz, keskin; çarpınca paramparça (net, cerrahi)
+ *   Yıldırım → yolculuk yok, anında çakar              (ani, şok)
+ *   Doğa     → uzun hazırlık, sarmaşık büyüyerek gider (yavaş, kaçınılmaz)
+ *   Rüzgar   → en hızlı, dönerek yay çizer, üç kesik   (çevik, savuran)
+ *   Kadim    → uçmaz; hedefin üstünde mühür belirip    (mesafe tanımaz,
+ *              içine çöker                              kaçınılmaz)
+ */
+
+const SPELL_TUNE = {
+  fire:   { travel: 1.00, wind: 1.00, lift: 52 },
+  ice:    { travel: 0.62, wind: 0.65, lift:  0 },
+  bolt:   { travel: 0.34, wind: 0.55, lift:  0 },
+  nature: { travel: 0.95, wind: 1.55, lift: 14 },
+  wind:   { travel: 0.48, wind: 0.50, lift: 40 },
+  arcane: { travel: 0.90, wind: 1.25, lift:  0 },
+};
+
+/* ---------------- geometri ---------------- */
+
+// Savaşta #fx (ekranın içinde), diğer ekranlarda #fly (ekranların üstünde).
+// Efektler her iki yerde de aynı kodla çalışsın diye tek kapı.
+const layerEl = () => {
+  const battle = document.getElementById('scr-battle');
+  return battle && battle.classList.contains('active')
+    ? document.getElementById('fx')
+    : document.getElementById('fly');
+};
+
+function centerOf(el) {
+  const r = el.getBoundingClientRect();
+  const l = layerEl().getBoundingClientRect();
+  return { x: r.left - l.left + r.width / 2, y: r.top - l.top + r.height / 2 };
+}
+
+// Yay için orta nokta. Kavis HEP ekran merkezine doğru bükülür — kenardaki
+// karakterden atılan mermi yoksa ekran dışına taşıyor.
+function arcMid(a, b, lift) {
+  const w = layerEl().getBoundingClientRect().width;
+  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  mid.x += (w / 2 - mid.x >= 0 ? 1 : -1) * lift;
+  return mid;
+}
+
+function spawn(cls, style) {
+  const d = document.createElement('div');
+  d.className = cls;
+  for (const [k, v] of Object.entries(style)) {
+    // özel değişkenler (--c) düz atamayla geçmiyor, setProperty şart
+    if (k.startsWith('--')) d.style.setProperty(k, v);
+    else d.style[k] = v;
+  }
+  layerEl().appendChild(d);
+  return d;
+}
+
+const at = (p) => ({ left: p.x + 'px', top: p.y + 'px' });
+const kill = (node, after) => setTimeout(() => node.remove(), after);
+
+/* ---------------- ortak parçalar ---------------- */
+
+// çarpma: genişleyen halka + dışa saçılan parçacıklar
+function impact(p, color, opts = {}) {
+  const { count = 9, spread = 46, ringScale = 3.4, shard = false, flash = true } = opts;
+  const dur = CFG.spellImpact;
+
+  const ring = spawn('fx-ring', { ...at(p), '--c': color });
+  ring.animate(
+    [
+      { transform: 'translate(-50%,-50%) scale(.2)', opacity: 1 },
+      { transform: `translate(-50%,-50%) scale(${ringScale})`, opacity: 0 },
+    ],
+    { duration: dur, easing: 'cubic-bezier(.2,.7,.3,1)' }
+  );
+  kill(ring, dur);
+
+  // Beyaz çekirdek parlaması vuruşta iyi, birleşmede kötü: orada rune'la
+  // yarışıp ikisini birden "hata" gibi gösteriyor.
+  if (flash) {
+    const fl = spawn('fx-flash', { ...at(p), '--c': color });
+    fl.animate(
+      [{ transform: 'translate(-50%,-50%) scale(1.6)', opacity: .95 },
+       { transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 }],
+      { duration: dur * 0.55, easing: 'ease-out' }
+    );
+    kill(fl, dur);
+  }
+
+  for (let i = 0; i < count; i++) {
+    const ang = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const dist = spread * (0.55 + Math.random() * 0.75);
+    const bit = spawn(shard ? 'fx-shard' : 'fx-bit', {
+      ...at(p),
+      '--c': color,
+      transform: `translate(-50%,-50%) rotate(${(ang * 180) / Math.PI}deg)`,
+    });
+    bit.animate(
+      [
+        { transform: `translate(-50%,-50%) rotate(${(ang * 180) / Math.PI}deg) translateX(0) scale(1)`, opacity: 1 },
+        { transform: `translate(-50%,-50%) rotate(${(ang * 180) / Math.PI}deg) translateX(${dist}px) scale(.25)`, opacity: 0 },
+      ],
+      { duration: dur * (0.7 + Math.random() * 0.5), easing: 'cubic-bezier(.15,.8,.35,1)' }
+    );
+    kill(bit, dur * 1.3);
+  }
+}
+
+// uçan merminin arkasına iz bırakır
+function trail(node, color, dur, every = 34) {
+  const iv = setInterval(() => {
+    const r = node.getBoundingClientRect();
+    const l = layerEl().getBoundingClientRect();
+    const dot = spawn('fx-trail', {
+      left: r.left - l.left + r.width / 2 + 'px',
+      top: r.top - l.top + r.height / 2 + 'px',
+      '--c': color,
+    });
+    dot.animate(
+      [{ transform: 'translate(-50%,-50%) scale(1)', opacity: .7 },
+       { transform: 'translate(-50%,-50%) scale(.2)', opacity: 0 }],
+      { duration: 260, easing: 'ease-out' }
+    );
+    kill(dot, 280);
+  }, every);
+  setTimeout(() => clearInterval(iv), dur);
+}
+
+/* ---------------- büyüler ---------------- */
+
+// ATEŞ — yay çizerek uçan alev küresi, sonunda patlama
+async function castFire(from, to, color, dur) {
+  const mid = arcMid(from, to, SPELL_TUNE.fire.lift);
+  const orb = spawn('fx-orb', { ...at(from), '--c': color });
+
+  orb.animate(
+    [
+      { transform: 'translate(-50%,-50%) scale(.35)', offset: 0 },
+      { transform: `translate(-50%,-50%) translate(${mid.x - from.x}px,${mid.y - from.y}px) scale(1.25)`, offset: .55 },
+      { transform: `translate(-50%,-50%) translate(${to.x - from.x}px,${to.y - from.y}px) scale(1.05)`, offset: 1 },
+    ],
+    { duration: dur, easing: 'cubic-bezier(.35,0,.65,1)' }
+  );
+  trail(orb, color, dur);
+
+  await sleep(dur);
+  orb.remove();
+  impact(to, color, { count: 11, spread: 52, ringScale: 3.8 });
+}
+
+// BUZ — düz ve hızlı mızrak, çarpınca kırılır
+async function castIce(from, to, color, dur) {
+  const ang = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI;
+  const shard = spawn('fx-lance', { ...at(from), '--c': color, '--a': ang + 'deg' });
+
+  shard.animate(
+    [
+      { transform: `translate(-50%,-50%) rotate(${ang}deg) scaleX(.4)`, opacity: .3 },
+      { transform: `translate(-50%,-50%) rotate(${ang}deg) translateX(6px) scaleX(1)`, opacity: 1, offset: .18 },
+      { transform: `translate(-50%,-50%) translate(${to.x - from.x}px,${to.y - from.y}px) rotate(${ang}deg) scaleX(1)`, opacity: 1 },
+    ],
+    // sabit hız: buz "fırlatılan" değil "atılan" bir şey gibi dursun
+    { duration: dur, easing: 'linear' }
+  );
+  // ince ve hızlı olduğu için tek başına okunmuyordu — arkasında kırağı izi
+  trail(shard, color, dur, 26);
+
+  await sleep(dur);
+  shard.remove();
+  impact(to, color, { count: 10, spread: 44, ringScale: 2.6, shard: true });
+}
+
+// ŞİMŞEK — yolculuk yok, iki nokta arasında anında çakar
+async function castBolt(from, to, color, dur) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'fx-bolt');
+  svg.style.setProperty('--c', color);
+
+  const mk = (width, opacity) => {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    line.setAttribute('points', boltPoints(from, to, 7, 15));
+    line.setAttribute('stroke-width', width);
+    line.setAttribute('opacity', opacity);
+    svg.appendChild(line);
+    return line;
+  };
+  mk(7, .35);   // dış hâle
+  const core = mk(2.5, 1);
+
+  layerEl().appendChild(svg);
+
+  // iki kez titret — tek çakış cansız duruyor
+  svg.animate(
+    [{ opacity: 1 }, { opacity: .25 }, { opacity: 1 }, { opacity: .5 }, { opacity: 0 }],
+    { duration: dur * 2.2, easing: 'steps(5,end)' }
+  );
+  setTimeout(() => core.setAttribute('points', boltPoints(from, to, 7, 15)), dur * 0.9);
+
+  await sleep(dur);
+  impact(to, color, { count: 8, spread: 40, ringScale: 3.0, shard: true });
+  kill(svg, dur * 1.4);
+}
+
+function boltPoints(a, b, segments, amp) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const pts = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    let x = a.x + dx * t, y = a.y + dy * t;
+    if (i > 0 && i < segments) {
+      const off = (Math.random() * 2 - 1) * amp;
+      x += (-dy / len) * off;
+      y += (dx / len) * off;
+    }
+    pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+  }
+  return pts.join(' ');
+}
+
+// DOĞA — sarmaşık KIVRILARAK hedefe büyür, üstünde dikenler açar
+//
+// Önce düz bir çubuğun clip-path ile açılmasıydı; "sarmaşık" değil "yeşil ışın"
+// gibi duruyordu. Şimdi gerçek bir S eğrisi çiziliyor (stroke-dashoffset ile
+// uçtan uca büyüyor) ve dikenler eğrinin ÜSTÜNE, teğetine dik oturuyor.
+async function castNature(from, to, color, dur) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const px = -dy / len, py = dx / len;              // doğrultuya dik birim
+  const amp = Math.min(52, len * 0.24);
+  const side = Math.random() < .5 ? 1 : -1;
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'fx-vine');
+  svg.style.setProperty('--c', color);
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute(
+    'd',
+    `M${from.x} ${from.y} ` +
+    `C${from.x + dx * .33 + px * amp * side} ${from.y + dy * .33 + py * amp * side} ` +
+    `${from.x + dx * .66 - px * amp * side} ${from.y + dy * .66 - py * amp * side} ` +
+    `${to.x} ${to.y}`
+  );
+  svg.appendChild(path);
+  layerEl().appendChild(svg);
+
+  const total = path.getTotalLength();
+  path.style.strokeDasharray = total;
+  path.animate(
+    [{ strokeDashoffset: total }, { strokeDashoffset: 0 }],
+    { duration: dur, easing: 'cubic-bezier(.4,.1,.3,1)', fill: 'forwards' }
+  );
+
+  // dikenler eğrinin üstünde, teğete dik açılıyor
+  const spikes = 5;
+  for (let i = 1; i <= spikes; i++) {
+    setTimeout(() => {
+      const t = i / (spikes + 1);
+      const p = path.getPointAtLength(total * t);
+      const q = path.getPointAtLength(Math.min(total, total * t + 2));
+      const ang = (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI + 90;
+      const s = spawn('fx-thorn', { left: p.x + 'px', top: p.y + 'px', '--c': color });
+      s.animate(
+        [{ transform: `translate(-50%,-50%) rotate(${ang}deg) scale(0)`, opacity: 1 },
+         { transform: `translate(-50%,-50%) rotate(${ang}deg) scale(1)`, opacity: .95, offset: .4 },
+         { transform: `translate(-50%,-50%) rotate(${ang}deg) scale(.6)`, opacity: 0 }],
+        { duration: 460, easing: 'ease-out' }
+      );
+      kill(s, 480);
+    }, dur * (i / (spikes + 1)));
+  }
+
+  await sleep(dur);
+  svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-out', fill: 'forwards' });
+  kill(svg, 240);
+  impact(to, color, { count: 12, spread: 48, ringScale: 3.2 });
+}
+
+// RÜZGAR — üç hilal kesik, dönerek ve yay çizerek; hepsinden hızlı
+async function castWind(from, to, color, dur) {
+  const mid = arcMid(from, to, SPELL_TUNE.wind.lift);
+  const ang = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI;
+
+  for (let i = 0; i < 3; i++) {
+    const g = spawn('fx-gust', { ...at(from), '--c': color });
+    g.innerHTML = `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor"
+      stroke-width="11" stroke-linecap="round"><path d="M26 14 A44 44 0 0 1 26 86"/></svg>`;
+    const off = (i - 1) * 13;
+
+    g.animate(
+      [
+        { transform: `translate(-50%,-50%) rotate(${ang}deg) scale(.45)`, opacity: 0 },
+        { transform: `translate(-50%,-50%) translate(${mid.x - from.x + off}px,${mid.y - from.y + off}px)
+                      rotate(${ang + 200}deg) scale(1)`, opacity: 1, offset: .5 },
+        { transform: `translate(-50%,-50%) translate(${to.x - from.x}px,${to.y - from.y}px)
+                      rotate(${ang + 420}deg) scale(.8)`, opacity: 1 },
+      ],
+      { duration: dur, delay: i * 55, easing: 'cubic-bezier(.35,.05,.5,1)', fill: 'backwards' }
+    );
+    kill(g, dur + i * 55 + 40);
+  }
+
+  await sleep(dur + 110);
+  impact(to, color, { count: 10, spread: 56, ringScale: 3.4 });
+}
+
+// KADİM — mesafe tanımaz: mühür doğrudan hedefin üstünde belirir, dönerek içine çöker
+async function castArcane(from, to, color, dur) {
+  const ring = spawn('fx-sigil-ring', { ...at(to), '--c': color });
+  ring.innerHTML = `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor"
+    stroke-width="4" stroke-linecap="round">
+    <circle cx="50" cy="50" r="44"/><circle cx="50" cy="50" r="30" stroke-dasharray="7 9"/>
+    <path d="M50 12 L82 68 L18 68 Z"/></svg>`;
+
+  // Zamanlama LINEAR: offset'ler ne diyorsa o olsun.
+  // Önce yumuşatıcı bir eğri vardı ve hareketi başa yığıyordu — mühür okunabilir
+  // boyutuna sürenin %12'sinde varıp kalan %88'de büzülüyordu. Gerçek hızda
+  // ~30ms görünür kalıyordu, yani hiç. Şimdi oluş–DUR–çök.
+  ring.animate(
+    [
+      { transform: 'translate(-50%,-50%) scale(2.2) rotate(-60deg)', opacity: 0,   offset: 0 },
+      { transform: 'translate(-50%,-50%) scale(1.5) rotate(-14deg)', opacity: .95, offset: .3 },
+      { transform: 'translate(-50%,-50%) scale(1.28) rotate(22deg)', opacity: .9,  offset: .62 },
+      { transform: 'translate(-50%,-50%) scale(.22) rotate(140deg)', opacity: 0,   offset: 1 },
+    ],
+    { duration: dur, easing: 'linear' }
+  );
+  kill(ring, dur + 40);
+
+  await sleep(dur);
+  impact(to, color, { count: 12, spread: 50, ringScale: 3.0 });
+}
+
+const SPELLS = {
+  fire: castFire, ice: castIce, bolt: castBolt,
+  nature: castNature, wind: castWind, arcane: castArcane,
+};
+
+/* ---------------- dışarıya açılan tek kapı ---------------- */
+
+/**
+ * Büyüyü fırlatır ve TAM ÇARPMA ANINDA çözülür — hasar orada uygulanır.
+ * CFG.spellTravel 0 ise hiç efekt üretmez (hızlı simülasyon).
+ */
+async function castSpell(element, fromEl, toEl) {
+  if (CFG.spellTravel <= 0 || !layerEl()) return;
+
+  const tune = SPELL_TUNE[element];
+  const color = ELEMENTS[element].color;
+  const from = centerOf(fromEl);
+  const to = centerOf(toEl);
+
+  await SPELLS[element](from, to, color, CFG.spellTravel * tune.travel);
+}
+
+/** Büyü öncesi hazırlık — caster kendi renginde toplanır. */
+async function windUp(element, fromEl) {
+  if (CFG.spellCast <= 0) return;
+  const ms = CFG.spellCast * SPELL_TUNE[element].wind;
+
+  fromEl.classList.add('casting');
+  const p = centerOf(fromEl);
+  const sig = spawn('fx-sigil', { ...at(p), '--c': ELEMENTS[element].color });
+  sig.innerHTML = elemIcon(element);
+  sig.animate(
+    [{ transform: 'translate(-50%,-50%) scale(.5) rotate(-25deg)', opacity: 0 },
+     { transform: 'translate(-50%,-50%) scale(1.15) rotate(0deg)', opacity: .9, offset: .6 },
+     { transform: 'translate(-50%,-50%) scale(.7) rotate(12deg)', opacity: 0 }],
+    { duration: ms, easing: 'ease-out' }
+  );
+  kill(sig, ms);
+
+  await sleep(ms);
+  fromEl.classList.remove('casting');
+}
+
+/* ---------------- eşleşen çiftin birleşmesi ---------------- */
+
+/**
+ * Eşleşen iki kart hafifçe yükselir, aralarındaki noktada birleşir ve büyüyü
+ * doğurur. Saldırının nereden geldiğini açıklayan hareket bu.
+ * Çözüldüğünde kartlar tahtadan kalkmıştır, saldırı başlayabilir.
+ */
+async function mergePair(a, b, element) {
+  const na = cardNode(a);
+  const nb = cardNode(b);
+  if (CFG.mergeFlight <= 0) return;
+
+  const color = ELEMENTS[element].color;
+
+  // Yuvaların konumundan hesaplıyoruz — kartlar animasyon sırasında kayıyor.
+  const rectOf = (n) => n.parentElement.getBoundingClientRect();
+  const sa = rectOf(na);
+  const sb = rectOf(nb);
+  const mid = {
+    x: (sa.left + sa.width / 2 + sb.left + sb.width / 2) / 2,
+    y: (sa.top + sa.height / 2 + sb.top + sb.height / 2) / 2,
+  };
+
+  const anims = [na, nb].map((n, k) => {
+    n.classList.add('pop');
+    n.parentElement.classList.add('merging');
+    const r = rectOf(n);
+    const dx = mid.x - (r.left + r.width / 2);
+    const dy = mid.y - (r.top + r.height / 2);
+    return n.animate(
+      [
+        // 1) kalk — hafif zıplayarak, "seçildim" der gibi
+        { transform: 'none', opacity: 1, easing: 'cubic-bezier(.3,1.5,.5,1)' },
+        { transform: 'translateY(-10px) scale(1.08)', opacity: 1, offset: .34,
+          easing: 'cubic-bezier(.65,0,.85,.35)' },
+        // 2) birbirine hızlanarak gir
+        { transform: `translate(${dx}px,${dy - 10}px) scale(.4) rotate(${k ? 14 : -14}deg)`,
+          opacity: 0 },
+      ],
+      { duration: CFG.mergeFlight, fill: 'forwards' }
+    );
+  });
+
+  await sleep(CFG.mergeFlight);
+
+  mergeBurst(mid, color, element);
+
+  // kartlar artık tahtadan kalktı: önce sınıfı ver, sonra animasyonu bırak —
+  // aksi halde bir kare boyunca geri geliyorlar
+  [na, nb].forEach((n) => {
+    n.classList.add('matched');
+    n.classList.remove('pop');
+    n.parentElement.classList.remove('merging');
+  });
+  anims.forEach((x) => x.cancel());
+
+  await sleep(CFG.mergePop);
+}
+
+/**
+ * Birleşme anı: rune oluşur, bir an DURUR, sonra dağılır.
+ *
+ * İlk hâli 0.3'ten 2.0'a fırlayıp kayboluyordu — göz bunu efekt değil hata
+ * olarak okuyor. Çare yavaşlatmak değil, ortada bir DURMA anı olması: rune'un
+ * okunacak kadar sabit kaldığı bir kare olunca "yanıp söndü" hissi geçiyor.
+ */
+function mergeBurst(clientPt, color, element) {
+  const l = layerEl().getBoundingClientRect();
+  const p = { x: clientPt.x - l.left, y: clientPt.y - l.top };
+  const dur = CFG.mergeGlyph;
+
+  const glyph = spawn('fx-merge', { ...at(p), '--c': color });
+  glyph.innerHTML = elemIcon(element);
+  glyph.animate(
+    [
+      { transform: 'translate(-50%,-50%) scale(.66)', opacity: 0, offset: 0 },
+      { transform: 'translate(-50%,-50%) scale(1)',    opacity: 1, offset: .3 },   // oluştu
+      { transform: 'translate(-50%,-50%) scale(1.05)', opacity: 1, offset: .58 },  // durdu
+      { transform: 'translate(-50%,-50%) scale(1.4)',  opacity: 0, offset: 1 },    // dağıldı
+    ],
+    { duration: dur, easing: 'ease-out' }
+  );
+  kill(glyph, dur + 30);
+
+  // beyaz çekirdek yok: sahnenin ortasındaki tek okunacak şey rune olsun
+  impact(p, color, { count: 11, spread: 58, ringScale: 3.6, flash: false });
+}
+
+/**
+ * Kartları desteden yuvalarına dağıtır.
+ * Tahta önce boş görünür (yuvalar duruyor), sonra kartlar sırayla uçup yerleşir.
+ * Toplam süreyi (ms) döndürür; 0 ise animasyon kapalı demektir.
+ */
+function dealBoard() {
+  if (CFG.dealCard <= 0) return 0;
+
+  const board = document.getElementById('board');
+  const br = board.getBoundingClientRect();
+  const cards = board.querySelectorAll('.card');
+
+  // deste tahtanın hemen üstünde duruyormuş gibi
+  const deck = { x: br.width / 2, y: -30 };
+  let total = 0;
+
+  cards.forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    const dx = deck.x - (r.left - br.left + r.width / 2);
+    const dy = deck.y - (r.top - br.top + r.height / 2);
+    const rot = -9 + (i % 5) * 3.6;                 // desteden çıkarken hafif savruk
+    const delay = CFG.dealDelay + i * CFG.dealStagger;
+
+    el.animate(
+      [
+        { transform: `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(.76)`, opacity: 0, offset: 0 },
+        { transform: `translate(${dx * .82}px,${dy * .82}px) rotate(${rot * .85}deg) scale(.82)`, opacity: 1, offset: .14 },
+        { transform: `translate(${dx * .06}px,${dy * .06}px) rotate(${rot * .1}deg) scale(1.04)`, opacity: 1, offset: .82 },
+        { transform: 'none', opacity: 1, offset: 1 },
+      ],
+      {
+        duration: CFG.dealCard,
+        delay,
+        easing: 'cubic-bezier(.22,.9,.3,1)',
+        fill: 'backwards',   // sırası gelene kadar görünmesin — tahta boş dursun
+      }
+    );
+
+    total = delay + CFG.dealCard;
+  });
+
+  return total;
+}
+
+/** Çarpma anında ekranı kısa ve hafif sarsar. */
+function shake() {
+  if (CFG.spellImpact <= 0) return;
+  const app = document.getElementById('app');
+  app.classList.remove('quake');
+  void app.offsetWidth;      // animasyonu yeniden tetikle
+  app.classList.add('quake');
+  setTimeout(() => app.classList.remove('quake'), 260);
+}
+
+
+/* ===== champions.js ===== */
+/* Rune Clash — şampiyonlar, koleksiyon, paketler
+ *
+ * Buradaki tek DOM işi yok: veri ve kayıt. Ekranlar screens.js'te.
+ */
+
+const RARITY = {
+  common: { name: 'Yaygın',   color: '#8a93a8', pips: 1 },
+  rare:   { name: 'Nadir',    color: '#5aa9e6', pips: 2 },
+  epic:   { name: 'Destansı', color: '#c77dff', pips: 3 },
+};
+
+/* Baskı adedi her kartta aynı: 300.
+ *
+ * Önce nadirliğe göre değişiyordu (yaygın 5000, nadir 1200, destansı 300) —
+ * ama o zaman yaygın bir kartın numarası 4813 olabiliyordu ve "0042/5000"
+ * koleksiyoncu için bir şey ifade etmiyordu. Tek ve küçük bir adet, her
+ * kartın numarasını okunur ve kıyaslanabilir yapıyor. */
+const PRINT_RUN = 300;
+
+/* Baskı adedini AŞAN kopyalar — asıl kovalanan şey.
+ * Numaraları gerçekten 300'ün üstünde (301–360) ve altın renkte yazılıyorlar.
+ * Ayrı bir "OVER" damgası yok: numaranın kendisi zaten söylüyor. */
+const OVER_CHANCE = 0.04;
+
+function mintSerial() {
+  const over = Math.random() < OVER_CHANCE;
+  const n = over
+    ? PRINT_RUN + 1 + Math.floor(Math.random() * 60)
+    : 1 + Math.floor(Math.random() * PRINT_RUN);
+  return { n, run: PRINT_RUN };
+}
+
+/* Bayrağa değil veriye bak: aşım numaranın kendisinden anlaşılıyor.
+   Eskiden `over: true` diye ayrı bir alan vardı, kayıtta numarayla ayrışabiliyordu. */
+const isOver = (s) => !!s && s.n > s.run;
+
+// Aşan her numaralıyı yener; numaralılarda küçük olan iyidir.
+function betterSerial(a, b) {
+  if (!b) return true;
+  if (isOver(a) !== isOver(b)) return isOver(a);
+  return a.n < b.n;
+}
+
+// Üç hane: baskı adedi 300, aşanlar en fazla 360 — dördüncü hane hep 0 kalıyordu.
+const serialText = (s) =>
+  !s ? '' : String(s.n).padStart(3, '0') + '/' + s.run;
+
+// Nadirlik saldırı gücünü belirliyor. Aralık bilerek dar:
+// koleksiyon derinliği dengeyi uçurmasın (rakip zaten güce göre üretiliyor).
+const RARITY_ATK = { common: [11, 12], rare: [15], epic: [18] };
+
+const CHAMPIONS = [
+  // ateş
+  { id: 'ember',  name: 'Ember',  title: 'Kıvılcım',      el: 'fire',   rarity: 'common', atk: 11 },
+  { id: 'cinder', name: 'Cinder', title: 'Kül İzi',       el: 'fire',   rarity: 'common', atk: 12 },
+  { id: 'korr',   name: 'Korr',   title: 'Ocak Muhafızı', el: 'fire',   rarity: 'rare',   atk: 15 },
+  { id: 'vulk',   name: 'Vulk',   title: 'Alev Efendisi', el: 'fire',   rarity: 'epic',   atk: 18 },
+  // buz
+  { id: 'cryo',   name: 'Cryo',   title: 'Ayaz',          el: 'ice',    rarity: 'common', atk: 11 },
+  { id: 'hail',   name: 'Hail',   title: 'Dolu',          el: 'ice',    rarity: 'common', atk: 12 },
+  { id: 'sylla',  name: 'Sylla',  title: 'Don Çağıran',   el: 'ice',    rarity: 'rare',   atk: 15 },
+  { id: 'vantr',  name: 'Vantr',  title: 'Kış Sonu',      el: 'ice',    rarity: 'epic',   atk: 18 },
+  // yıldırım
+  { id: 'jolt',   name: 'Jolt',   title: 'Sarsıntı',      el: 'bolt',   rarity: 'common', atk: 11 },
+  { id: 'zire',   name: 'Zire',   title: 'Ark',           el: 'bolt',   rarity: 'common', atk: 12 },
+  { id: 'volt',   name: 'Volt',   title: 'Gök Gürültüsü', el: 'bolt',   rarity: 'rare',   atk: 15 },
+  { id: 'skarn',  name: 'Skarn',  title: 'Fırtına Başı',  el: 'bolt',   rarity: 'epic',   atk: 18 },
+  // doğa
+  { id: 'fenn',   name: 'Fenn',   title: 'Bataklık',      el: 'nature', rarity: 'common', atk: 11 },
+  { id: 'sage',   name: 'Sage',   title: 'Kök Bilge',     el: 'nature', rarity: 'common', atk: 12 },
+  { id: 'bram',   name: 'Bram',   title: 'Diken Duvarı',  el: 'nature', rarity: 'rare',   atk: 15 },
+  { id: 'thorn',  name: 'Thorn',  title: 'Orman Kalbi',   el: 'nature', rarity: 'epic',   atk: 18 },
+  // rüzgar
+  { id: 'gale',   name: 'Gale',   title: 'Poyraz',        el: 'wind',   rarity: 'common', atk: 11 },
+  { id: 'zephy',  name: 'Zephy',  title: 'Meltem',        el: 'wind',   rarity: 'common', atk: 12 },
+  { id: 'sirocc', name: 'Sirocc', title: 'Çöl Yeli',      el: 'wind',   rarity: 'rare',   atk: 15 },
+  { id: 'tempra', name: 'Tempra', title: 'Kasırga Gözü',  el: 'wind',   rarity: 'epic',   atk: 18 },
+  // kadim
+  { id: 'mote',   name: 'Mote',   title: 'Zerre',         el: 'arcane', rarity: 'common', atk: 11 },
+  { id: 'sigil',  name: 'Sigil',  title: 'Mühür',         el: 'arcane', rarity: 'common', atk: 12 },
+  { id: 'noctis', name: 'Noctis', title: 'Yıldız Okuyan', el: 'arcane', rarity: 'rare',   atk: 15 },
+  { id: 'aeon',   name: 'Aeon',   title: 'Ezel',          el: 'arcane', rarity: 'epic',   atk: 18 },
+];
+
+const champById = (id) => CHAMPIONS.find((c) => c.id === id);
+
+/* ---------------- kayıt ---------------- */
+
+// Başlangıçta 2 paket = 6 kart. Tek paket yetmiyor: deste 3 kart, elindeki üçü
+// zaten oynuyorsun ve deste kurma ekranında seçim olmuyor. 6 kartta seçim var
+// ve açılış üç pakete kıyasla daha çabuk bitiyor.
+const INTRO_PACKS = 2;
+
+const SAVE_KEY = 'rc_save_v1';
+
+const SAVE = (() => {
+  const base = {
+    wins: 0, losses: 0, owned: {}, serials: {}, deck: [], packs: 0,
+    introDone: false, introLeft: INTRO_PACKS,
+    // rütbe ve ekonomi — anlamları rank.js'te
+    coins: 0, placeGames: 0, placeWins: 0, tier: 0, div: 4, lp: 0,
+  };
+  try {
+    return { ...base, ...JSON.parse(localStorage.getItem(SAVE_KEY) || '{}') };
+  } catch {
+    return base;
+  }
+})();
+
+function persist() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch {}
+}
+
+/* --- göç ---
+ * Tek paketlik başlangıç döneminden kalan kayıtlarda `introDone: true` yazıyor
+ * ama oyuncunun 3 kartı var. O kayıtla açılınca başlangıç serisi hiç çalışmıyor.
+ * Başlangıcın bitip bitmediğini bayrağa değil, açılmış paket sayısına bakarak
+ * belirliyoruz — bayrak yalan söyleyebilir, kartlar söyleyemez.
+ *
+ * `v` bilerek varsayılanlarda YOK: olsaydı eski kayıtlar da sürümlü görünür,
+ * göç hiç çalışmazdı.
+ */
+if (!SAVE.v) {
+  const kartSayisi = Object.values(SAVE.owned).reduce((a, b) => a + b, 0);
+  const acilanPaket = Math.floor(kartSayisi / 3);
+  SAVE.introLeft = Math.max(0, INTRO_PACKS - acilanPaket);
+  SAVE.introDone = SAVE.introLeft === 0;
+  SAVE.v = 2;
+  persist();
+}
+
+/* Baskı adedi 300'e indi (önce nadirliğe göre 5000/1200/300 idi).
+ * Eski kayıtlarda 0634/1200 gibi numaralar duruyor; oranı koruyarak 300'e
+ * ölçekleniyorlar — "ortalarda bir numara" ortalarda bir numara kalsın.
+ * `over: true` yazan eskiler numarasızdı, onlara da 300 üstü bir numara veriliyor. */
+if (!SAVE.serials) SAVE.serials = {};
+if (SAVE.v < 3) {
+  for (const s of Object.values(SAVE.serials)) {
+    if (!s) continue;
+    if (s.over && s.n == null) s.n = PRINT_RUN + 1 + Math.floor(Math.random() * 60);
+    else if (s.n != null && s.run) s.n = Math.max(1, Math.round((s.n / s.run) * PRINT_RUN));
+    s.run = PRINT_RUN;
+    delete s.over;
+  }
+  SAVE.v = 3;
+  persist();
+}
+
+// Seri numaraları sonradan geldi: eski kartlara da bas.
+for (const id of Object.keys(SAVE.owned)) {
+  if (!SAVE.serials[id] && champById(id)) SAVE.serials[id] = mintSerial();
+}
+
+const ownedIds = () => CHAMPIONS.filter((c) => SAVE.owned[c.id] > 0).map((c) => c.id);
+const ownsAll = () => ownedIds().length >= CHAMPIONS.length;
+
+/** Kartı koleksiyona ekler ve BU kopyanın seri numarasını döndürür. */
+function grant(champ) {
+  SAVE.owned[champ.id] = (SAVE.owned[champ.id] || 0) + 1;
+  const s = mintSerial();
+  if (betterSerial(s, SAVE.serials[champ.id])) SAVE.serials[champ.id] = s;
+  return s;
+}
+
+/* ---------------- deste ---------------- */
+
+// Deste bozuksa (kayıt eski, kart yok) sahip olunan ilk üçe düşer —
+// oyun hiçbir durumda kartsız açılmasın.
+function deckChampions() {
+  const picked = SAVE.deck.map(champById).filter((c) => c && SAVE.owned[c.id] > 0);
+  if (picked.length === 3) return picked;
+  return ownedIds().slice(0, 3).map(champById);
+}
+
+/** Savaş motorunun beklediği biçim. */
+function playerSquad() {
+  const deck = deckChampions();
+  if (!deck.length) return CHAMPIONS.slice(0, 3).map(toUnit); // olmaması gereken hâl
+  return deck.map(toUnit);
+}
+
+const toUnit = (c, i) => ({ id: 'p' + i, name: c.name, el: c.el, atk: c.atk });
+
+const squadPower = () => playerSquad().reduce((s, u) => s + u.atk, 0);
+
+/* ---------------- paketler ---------------- */
+
+function rollRarity() {
+  const r = Math.random();
+  if (r < 0.05) return 'epic';
+  if (r < 0.30) return 'rare';
+  return 'common';
+}
+
+/**
+ * @param taken  aynı paket içinde tekrar çıkmasın
+ * @param fresh  mümkünse sahip olunmayanı ver (başlangıç paketlerinde koleksiyon
+ *               genişlesin — 9 kartın 6'sı kopya çıkarsa deste kurmak yine anlamsız)
+ */
+function pickChampion(el, rarity, taken, fresh) {
+  const free = (f) => CHAMPIONS.filter((c) => !taken.has(c.id) && f(c));
+  const isNew = (c) => !SAVE.owned[c.id];
+
+  const elRar = free((c) => c.el === el && c.rarity === rarity);
+  const rar   = free((c) => c.rarity === rarity);
+  const els   = free((c) => c.el === el);
+  const any   = free(() => true);
+
+  // fresh: önce hep YENİ kart ara. Element+nadirlik tükenmişse elementten
+  // vazgeç, nadirlikten değil — güç nadirliğe bağlı, element sadece renk.
+  const order = fresh
+    ? [elRar.filter(isNew), rar.filter(isNew), any.filter(isNew), elRar, rar, els, any]
+    : [elRar, els, any];
+
+  const c = pickRandom(order.find((p) => p.length));
+  taken.add(c.id);
+  return c;
+}
+
+/**
+ * Bir paket = 3 kart.
+ * İlk paket özel: üç FARKLI element ve en az bir nadir — oyuncunun ilk destesi
+ * hem oynanabilir hem de dört elementten üçünü tanıtmış olsun.
+ */
+function rollPack({ first = false, fresh = false } = {}) {
+  const taken = new Set();
+
+  if (first) {
+    const els = shuffle(Object.keys(ELEMENTS)).slice(0, 3);
+    const rarities = shuffle(['rare', 'common', 'common']);
+    return els.map((el, i) => pickChampion(el, rarities[i], taken, fresh));
+  }
+
+  return Array.from({ length: 3 }, () =>
+    pickChampion(pickRandom(Object.keys(ELEMENTS)), rollRarity(), taken, fresh)
+  );
+}
+
+/** Koleksiyonun en güçlü üçlüsü — başlangıç destesi için. */
+function autoDeck() {
+  SAVE.deck = ownedIds()
+    .map(champById)
+    .sort((a, b) => b.atk - a.atk)
+    .slice(0, 3)
+    .map((c) => c.id);
+}
+
+
+/* ===== rank.js ===== */
+/* Rune Clash — rütbe, LP ve Rune Coin
+ *
+ * LoL'ün rütbe merdiveni birebir alındı: 10 kademe, ilk yedisinde IV→I bölümler
+ * ve 100 LP, son üçü (Usta / Büyük Usta / Şampiyon) bölümsüz ve LP birikimli.
+ *
+ * Burada DOM işi yok — sadece veri ve kayıt. Ekranlar app.js'te.
+ */
+
+/* recall = yapay zekanın hatırlama olasılığı, tek başına tüm zorluk kadranı.
+ *
+ * Kademe başına +0.02 — bilerek küçük. 400'er maçlık ölçümde ortalama oyuncu
+ * (hafıza 0.70) için kademe başına ~2-3 puanlık kazanma oranı farkı ediyor;
+ * merdivenin iki ucu arasında ~30 puan. Beceri farkı bundan büyük kalıyor
+ * (aynı kademede hafıza 0.4 → 1.0 arası ~35 puan), yani rütbe beceriyi
+ * gölgelemiyor — oyunun en önemli doğrulaması buydu, korunması şart.
+ *
+ * Değerler merdivenin ORTASI dengede olacak şekilde konumlandı: ortalama
+ * oyuncu 0.24 civarında %50 kazanıyor, o da Altın/Platin'e denk geliyor.
+ * İlk denemede tüm eğri 0.06 yukarıdaydı ve ortalama oyuncu Gümüş'te bile
+ * %37'de kalıyordu — merdiven tırmanılamıyordu. */
+/* key: amblem dosyasının adı (assets/icons/rank-<key>.svg)
+   color: kademe rengi — amblem currentColor ile bunu alıyor */
+const TIERS = [
+  //                                            apex: bölümü yok, LP birikiyor
+  { name: 'Demir',      key: 'demir',     color: '#8a8694', apex: false, recall: 0.17 },
+  { name: 'Bronz',      key: 'bronz',     color: '#b0743f', apex: false, recall: 0.19 },
+  { name: 'Gümüş',      key: 'gumus',     color: '#b9c5d2', apex: false, recall: 0.21 },
+  { name: 'Altın',      key: 'altin',     color: '#e6b53f', apex: false, recall: 0.23 },
+  { name: 'Platin',     key: 'platin',    color: '#4fc9b4', apex: false, recall: 0.25 },
+  { name: 'Zümrüt',     key: 'zumrut',    color: '#41c478', apex: false, recall: 0.27 },
+  { name: 'Elmas',      key: 'elmas',     color: '#71adf0', apex: false, recall: 0.29 },
+  { name: 'Usta',       key: 'usta',      color: '#ad6be6', apex: true,  recall: 0.31 },
+  { name: 'Büyük Usta', key: 'buyukusta', color: '#e66565', apex: true,  recall: 0.33 },
+  { name: 'Şampiyon',   key: 'sampiyon',  color: '#f2dc90', apex: true,  recall: 0.35 },
+];
+
+const APEX_FROM = 7;                 // Usta'dan itibaren bölüm yok
+const APEX_LP   = [0, 500, 1000];    // Usta / Büyük Usta / Şampiyon eşikleri
+const DIV_ROMAN = ['', 'I', 'II', 'III', 'IV'];   // div 1..4 (4 en alt)
+
+const PLACEMENT_GAMES = 3;
+
+/* Yerleştirme sonucu ilk rütbeyi belirliyor. LoL bunu gizli MMR'dan yapıyor;
+   burada üç maçın galibiyet sayısı tek veri, ondan okunur bir eşleme kuruldu. */
+const PLACEMENT_START = [
+  { tier: 0, div: 4 },   // 0 galibiyet → Demir IV
+  { tier: 0, div: 1 },   // 1 galibiyet → Demir I
+  { tier: 1, div: 2 },   // 2 galibiyet → Bronz II
+  { tier: 2, div: 4 },   // 3 galibiyet → Gümüş IV
+];
+
+/* LP kazanç/kayıp.
+ *
+ * Kazanç ile kayıp oranı, oyuncunun hangi kazanma oranında DENGEDE kalacağını
+ * belirliyor: başabaş nokta = kayıp / (kazanç + kayıp). İlk denemede +22/-14
+ * vardı, bu %39'da denge demek — oyuncu üç maçın ikisini kaybettiği yerde
+ * takılıp kalıyordu ve bu kötü hissettiriyor. LoL'de kazanç ve kayıp kabaca
+ * eşit, denge %50'de. Buradaki de ona yaklaştırıldı.
+ *
+ * Alt kademelerde küçük bir pozitif eğim var (başabaş %46): yeni oyuncu
+ * Demir'de çakılıp kalmasın. Zirvede tersi (%51): Şampiyon zor tutulsun. */
+function lpDelta(won, tier) {
+  if (tier <= 3) return won ? 21 : -18;   // Demir–Altın · başabaş %46
+  if (tier <= 6) return won ? 19 : -19;   // Platin–Elmas · başabaş %50
+  return           won ? 18 : -19;        // Usta+ · başabaş %51
+}
+
+/* ---------------- Rune Coin ---------------- */
+
+const COIN_WIN   = 4;   // kazanınca
+const COIN_LOSS  = 1;   // kaybedince de kazanılıyor — boşa geçen maç olmasın
+const PACK_PRICE = 5;
+
+const affordablePacks = () => Math.floor(SAVE.coins / PACK_PRICE);
+
+/** Paket satın alır. Parası yetmezse hiçbir şey yapmaz ve 0 döner. */
+function buyPacks(n) {
+  const adet = Math.max(0, Math.min(n | 0, affordablePacks()));
+  if (!adet) return 0;
+  SAVE.coins -= adet * PACK_PRICE;
+  SAVE.packs += adet;
+  persist();
+  return adet;
+}
+
+/* ---------------- rütbe okuma ---------------- */
+
+const isPlaced = () => SAVE.placeGames >= PLACEMENT_GAMES;
+
+function rankLabel() {
+  if (!isPlaced()) return `Yerleştirme ${SAVE.placeGames}/${PLACEMENT_GAMES}`;
+  const t = TIERS[SAVE.tier];
+  return t.apex ? t.name : `${t.name} ${DIV_ROMAN[SAVE.div]}`;
+}
+
+/** Yapay zekanın hafızası — tek başına tüm zorluk kadranı (bkz. CFG.aiRecall).
+ *  Yerleştirmede orta kademe kullanılıyor: henüz rütbe yok. */
+const rankRecall = () => (isPlaced() ? TIERS[SAVE.tier] : TIERS[2]).recall;
+
+/* ---------------- maç sonucu ---------------- */
+
+function promoteOnce() {
+  if (SAVE.div > 1) { SAVE.div--; return; }
+  if (SAVE.tier < APEX_FROM - 1) { SAVE.tier++; SAVE.div = 4; return; }
+  SAVE.tier = APEX_FROM; SAVE.div = 0; SAVE.lp = 0;   // Elmas I → Usta
+}
+
+function demoteOnce() {
+  if (SAVE.div < 4) { SAVE.div++; return true; }
+  if (SAVE.tier > 0) { SAVE.tier--; SAVE.div = 1; return true; }
+  return false;                                        // Demir IV taban
+}
+
+const apexTierFromLp = (lp) =>
+  APEX_FROM + APEX_LP.filter((esik) => lp >= esik).length - 1;
+
+/**
+ * Maçı sicile işler: yerleştirme, LP, rütbe, Rune Coin ve rütbe atlama paketi.
+ * Döndürdüğü özet sonuç ekranında gösteriliyor.
+ */
+function applyMatchResult(won) {
+  const oncekiEtiket = rankLabel();
+  const coins = won ? COIN_WIN : COIN_LOSS;
+  SAVE.coins += coins;
+
+  // --- yerleştirme maçları ---
+  if (!isPlaced()) {
+    SAVE.placeGames++;
+    if (won) SAVE.placeWins++;
+    const bitti = isPlaced();
+    if (bitti) {
+      const b = PLACEMENT_START[SAVE.placeWins];
+      SAVE.tier = b.tier; SAVE.div = b.div; SAVE.lp = 0;
+    }
+    persist();
+    return {
+      placement: true, placementDone: bitti,
+      oncekiEtiket, etiket: rankLabel(), coins, lp: 0, rankUps: 0, dustu: false,
+    };
+  }
+
+  // --- LP ---
+  const d = lpDelta(won, SAVE.tier);
+  let rankUps = 0, dustu = false;
+
+  if (SAVE.tier >= APEX_FROM) {
+    const yeni = SAVE.lp + d;
+    if (yeni < 0) {
+      SAVE.tier = APEX_FROM - 1; SAVE.div = 1; SAVE.lp = 75;   // Usta → Elmas I
+      dustu = true;
+    } else {
+      SAVE.lp = yeni;
+      const yeniTier = apexTierFromLp(SAVE.lp);
+      if (yeniTier > SAVE.tier) rankUps += yeniTier - SAVE.tier;
+      if (yeniTier < SAVE.tier) dustu = true;
+      SAVE.tier = yeniTier;
+    }
+  } else {
+    SAVE.lp += d;
+    while (SAVE.lp >= 100 && SAVE.tier < APEX_FROM) {
+      SAVE.lp -= 100;
+      promoteOnce();
+      rankUps++;
+    }
+    while (SAVE.lp < 0) {
+      if (!demoteOnce()) { SAVE.lp = 0; break; }
+      SAVE.lp += 100;
+      dustu = true;
+    }
+  }
+
+  // Her rütbe atlayışı bir bedava paket.
+  if (rankUps > 0) SAVE.packs += rankUps;
+  persist();
+
+  return { placement: false, oncekiEtiket, etiket: rankLabel(), coins, lp: d, rankUps, dustu };
+}
+
+
+/* ===== screens.js ===== */
+/* Rune Clash — açılış, paket açma, ganimet, deste kurma */
+
+const SCREENS = {
+  loadMs:     3400,   // açılış ekranı
+  packInMs:    620,   // paketin ekrana girişi
+  tearMs:      480,   // paketin yırtılması
+  cardFlyMs:   460,   // kartların paketten çıkışı
+  flipMs:      520,   // kartın çevrilmesi
+  settleMs:    320,   // lobi otururken kartların havada beklemesi
+  toDeckMs:    620,   // kartın "Desteni Kur" tuşuna uçuşu
+  toDeckGap:    70,   // kartlar arası gecikme — sıkı olsun ki akış gibi dursun
+};
+
+// Nadirlik arttıkça vurgu artıyor: daha uzun durma, daha büyük sıçrama, etiket.
+const REVEAL = {
+  // Nadir kartta yazı yok: paketten sık çıkıyor, her seferinde uçan etiket
+  // vurgu olmaktan çıkıp gürültü oluyordu. Kartın kendi parlaması yeterli.
+  common: { hold: 260, pop: 1.00, label: null,       beam: false },
+  rare:   { hold: 520, pop: 1.09, label: null,       beam: false },
+  epic:   { hold: 800, pop: 1.17, label: 'DESTANSI', beam: true  },
+};
+
+const LOAD_TIPS = [
+  'Iskaladığın kart rakibe de bilgi verir.',
+  'Elementinde karakterin yoksa çift bulmak sadece rakibi engeller.',
+  'Üst üste üç eşleşmeden sonra sıra zorla geçer.',
+  'Yıldırım yol almaz — anında çakar.',
+  'Aynı elementten iki şampiyon, o rune bulununca iki kat vurur.',
+  'Her kart 300 basıldı. Numarası 300\'ü aşan kopyalar altın yazılır.',
+];
+
+/* ---------------- şampiyon kartı ---------------- */
+
+/* Şampiyon görseli varsa kullanılır, yoksa element sembolü + ışınlar kalır.
+ * Dosya: src/assets/champ/<id>.png  (id = CHAMPIONS içindeki id)
+ * Eksik olanı bir kez deneyip listeye yazıyoruz — her kart çiziminde
+ * tekrar tekrar 404 istemeyelim. */
+const ART_MISSING = new Set();
+
+function champArt(c) {
+  if (ART_MISSING.has(c.id)) return '';
+  return `<img class="ch-img" src="assets/champ/${c.id}.png" alt="" loading="lazy"
+            onerror="ART_MISSING.add('${c.id}');this.remove()">`;
+}
+
+/**
+ * @param opts.pick    köşe rozeti metni ("1" / "✓")
+ * @param opts.mini    küçük ızgara sürümü (alt yazı ve seri gizli)
+ * @param opts.sealed  kapalı başlasın (paket açılışı için)
+ * @param opts.serial  bu kopyanın seri numarası
+ */
+function champCardHtml(c, opts = {}) {
+  const { pick = '', mini = false, sealed = false, serial = null } = opts;
+  const rar = RARITY[c.rarity];
+  const s = serial || SAVE.serials[c.id];
+  const cls = ['champ', mini && 'mini', pick && 'picked', sealed && 'sealed',
+               isOver(s) && 'over'].filter(Boolean).join(' ');
+
+  return `
+    <button class="${cls}" data-id="${c.id}" data-el="${c.el}"
+            style="--c:${ELEMENTS[c.el].color}; --r:${rar.color}">
+      <span class="ch-flip">
+        <span class="ch-back"><span class="ch-back-mark">${MARK_SVG}</span></span>
+        <span class="ch-face">
+          <span class="ch-sheen"></span>
+          <span class="ch-top">
+            <span class="ch-pips">${'<i></i>'.repeat(rar.pips)}</span>
+            <span class="ch-atk">${c.atk}</span>
+          </span>
+          <span class="ch-art">
+            <span class="ch-rays"></span>
+            <span class="ch-glyph">${elemIcon(c.el)}</span>
+            ${champArt(c)}
+          </span>
+          <span class="ch-plate">
+            <span class="ch-name">${c.name}</span>
+            ${mini ? '' : `<span class="ch-title">${c.title}</span>`}
+          </span>
+          ${mini ? '' : `<span class="ch-serial">${serialText(s)}</span>`}
+        </span>
+      </span>
+      ${pick ? `<span class="ch-badge">${pick}</span>` : ''}
+    </button>`;
+}
+
+/* ---------------- açılış ---------------- */
+
+function showLoading(then) {
+  $('#loadMark').innerHTML = MARK_SVG;
+  for (const orb of document.querySelectorAll('.load-orb')) {
+    orb.innerHTML = elemIcon(orb.dataset.el);
+    orb.style.setProperty('--c', ELEMENTS[orb.dataset.el].color);
+  }
+  $('#loadTip').textContent = pickRandom(LOAD_TIPS);
+  $('#loadFill').style.animationDuration = SCREENS.loadMs + 'ms';
+
+  show('scr-loading');
+  setTimeout(then, SCREENS.loadMs);
+}
+
+/* ---------------- paket ---------------- */
+
+const PACK_HTML = `
+  <div class="pack">
+    <span class="pk-tear"></span>
+    <span class="pk-body">
+      <span class="pk-sheen"></span>
+      <span class="pk-inner">
+        <span class="pk-mark">${'{{MARK}}'}</span>
+        <span class="pk-word">RUNE CLASH</span>
+        <span class="pk-rule"></span>
+        <span class="pk-sub">BOOSTER · 3 KART</span>
+      </span>
+    </span>
+    <span class="pk-burst"></span>
+  </div>`;
+
+let packCards = [];      // bu paketteki şampiyonlar
+let packSerials = [];    // bu kopyaların seri numaraları
+let packStage = 'closed';
+let packIntro = false;
+let haul = [];           // seri boyunca toplanan her şey: {c, s}
+
+function enterPack(intro = false) {
+  const nth = INTRO_PACKS - SAVE.introLeft + 1;
+  packIntro = intro;
+  packCards = rollPack({ first: intro && nth === 1, fresh: intro });
+  packSerials = [];
+  packStage = 'closed';
+  if (!intro) haul = [];
+
+  $('#packHead').textContent = intro
+    ? `Başlangıç paketi · ${nth}/${INTRO_PACKS}`
+    : 'Yeni paket';
+  $('#packCards').innerHTML = '';
+  $('#packBtn').textContent = 'PAKETİ AÇ';
+  $('#packBtn').disabled = false;
+
+  // Paket her seferinde sıfırdan kuruluyor — eski yırtık hâlinin geri sarması yok.
+  $('#packSlot').innerHTML = PACK_HTML.replace('{{MARK}}', MARK_SVG);
+  show('scr-pack');
+
+  const box = $('.pack', $('#packSlot'));
+  box.animate(
+    [
+      { transform: 'translateY(130px) rotate(-7deg) scale(.84)', opacity: 0 },
+      { transform: 'translateY(-12px) rotate(2deg) scale(1.03)', opacity: 1, offset: .68 },
+      { transform: 'translateY(0) rotate(0deg) scale(1)', opacity: 1 },
+    ],
+    { duration: SCREENS.packInMs, easing: 'cubic-bezier(.2,.95,.3,1)', fill: 'backwards' }
+  );
+}
+
+async function tearPack() {
+  if (packStage !== 'closed') return;
+  packStage = 'tearing';
+  // Yazı SİLİNMİYOR, görünmez yapılıyor. Boşaltınca tuşun yüksekliği 50px'den
+  // 34px'e düşüyor, sayfa yeniden ortalanıyor ve kartlar zıplıyordu.
+  $('#packBtn').disabled = true;
+  $('#packBtn').classList.add('yazisiz');
+
+  const box = $('.pack', $('#packSlot'));
+  const tear = $('.pk-tear', box);
+  const burst = $('.pk-burst', box);
+
+  box.animate(
+    [{ transform: 'rotate(0)' }, { transform: 'rotate(-2.4deg)' },
+     { transform: 'rotate(2.4deg)' }, { transform: 'rotate(0)' }],
+    { duration: 260, iterations: 2 }
+  );
+  await sleep(300);
+
+  // Yırtık ANİMASYON, transition değil: sınıf kalkınca geri sarmasın.
+  tear.animate(
+    [
+      { transform: 'translate(0,0) rotate(0)', opacity: 1 },
+      { transform: 'translate(46px,-72px) rotate(28deg)', opacity: 0 },
+    ],
+    { duration: SCREENS.tearMs, easing: 'cubic-bezier(.4,0,.7,.4)', fill: 'forwards' }
+  );
+  burst.animate(
+    [
+      { transform: 'translate(-50%,-50%) scale(0)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) scale(1.15)', opacity: .95, offset: .25 },
+      { transform: 'translate(-50%,-50%) scale(2.6)', opacity: 0 },
+    ],
+    { duration: 800, easing: 'cubic-bezier(.2,.8,.3,1)', delay: 90, fill: 'backwards' }
+  );
+  await sleep(SCREENS.tearMs);
+
+  // Seri numaraları kartlar ÇİZİLMEDEN önce basılmalı — sonra basılınca
+  // kartın üstünde boş bir şerit kalıyordu.
+  packSerials = packCards.map(grant);
+  packCards.forEach((c, i) => haul.push({ c, s: packSerials[i] }));
+  persist();
+
+  // kartlar paketten çıkıp yelpaze yapar (kapalı yüzleri yukarıda)
+  const host = $('#packCards');
+  host.innerHTML = packCards
+    .map((c, i) => champCardHtml(c, { sealed: true, serial: packSerials[i] }))
+    .join('');
+  const nodes = [...host.children];
+  const tilt = [-1, 0, 1];
+
+  nodes.forEach((n, i) => {
+    n.animate(
+      [
+        { transform: 'translate(0,130px) scale(.42) rotate(0deg)', opacity: 0 },
+        { transform: `translate(${tilt[i] * 5}px,-10px) scale(1.06) rotate(${tilt[i] * 4}deg)`, opacity: 1, offset: .72 },
+        { transform: `translate(0,0) scale(1) rotate(${tilt[i] * 2}deg)`, opacity: 1 },
+      ],
+      { duration: SCREENS.cardFlyMs, delay: i * 100, easing: 'cubic-bezier(.2,.95,.3,1)', fill: 'backwards' }
+    );
+  });
+
+  box.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.8) translateY(20px)' }],
+    { duration: 380, easing: 'ease-in', fill: 'forwards' });
+
+  await sleep(SCREENS.cardFlyMs + 2 * 100 + 140);
+
+  // tek tek çevir — asıl an bu
+  for (const [i, n] of nodes.entries()) {
+    await revealOne(n, packCards[i], packSerials[i]);
+  }
+
+  packStage = 'done';
+  $('#packBtn').disabled = false;
+  $('#packBtn').classList.remove('yazisiz');
+  $('#packBtn').textContent = packIntro && SAVE.introLeft > 1 ? 'SONRAKİ PAKET' : 'DEVAM';
+}
+
+/**
+ * Bir kartı çevirir ve nadirliğine göre vurgular.
+ *
+ * Vurgu kartın DIŞINA saçılan parçacıklarla değil, kartın KENDİSİYLE yapılıyor:
+ * çerçevesi kendi renginde parlıyor ve üstünden folyo ışığı geçiyor. Saçılan
+ * noktalar kartın parçası gibi durmuyor, ekran arızası gibi duruyordu.
+ */
+async function revealOne(node, champ, serial) {
+  const cfg = REVEAL[champ.rarity];
+  const over = isOver(serial);
+  const color = over ? '#e8c56a' : RARITY[champ.rarity].color;
+  const strength = over ? 3 : RARITY[champ.rarity].pips;
+
+  node.classList.remove('sealed');
+  await sleep(SCREENS.flipMs * 0.42);      // kart yarılandığında tetikle
+
+  node.style.setProperty('--gw', strength);
+  node.classList.add('revealing');
+  setTimeout(() => node.classList.remove('revealing'), 800);
+
+  if (cfg.beam || over) beamAt(node, color);
+
+  node.animate(
+    [{ transform: 'scale(1)' }, { transform: `scale(${cfg.pop})`, offset: .34 }, { transform: 'scale(1)' }],
+    { duration: 460, easing: 'cubic-bezier(.3,1.35,.5,1)' }
+  );
+
+  // Aşan kopyada damga değil numaranın kendisi uçuyor — kovalanan şey o.
+  const label = over ? serialText(serial) : cfg.label;
+  if (label) floatLabel(node, label, color);
+
+  await sleep(cfg.hold);
+}
+
+function cardCenter(node) {
+  const r = node.getBoundingClientRect();
+  const l = layerEl().getBoundingClientRect();
+  return { x: r.left - l.left + r.width / 2, y: r.top - l.top + r.height / 2, w: r.width, h: r.height };
+}
+
+function floatLabel(node, text, color) {
+  const p = cardCenter(node);
+  const el = spawn('fx-rarity', { left: p.x + 'px', top: p.y - p.h * 0.62 + 'px', '--c': color });
+  el.textContent = text;
+  el.animate(
+    [
+      { transform: 'translate(-50%,-50%) scale(.7)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: .22 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: .68 },
+      { transform: 'translate(-50%,-140%) scale(.95)', opacity: 0 },
+    ],
+    { duration: 1100, easing: 'cubic-bezier(.2,.9,.3,1)' }
+  );
+  kill(el, 1120);
+}
+
+function beamAt(node, color) {
+  const p = cardCenter(node);
+  const el = spawn('fx-beam', { left: p.x + 'px', top: p.y + 'px', '--c': color, height: p.h * 3.4 + 'px' });
+  el.animate(
+    [
+      { transform: 'translate(-50%,-50%) scaleX(.2) scaleY(.4)', opacity: 0 },
+      { transform: 'translate(-50%,-50%) scaleX(1) scaleY(1)', opacity: .85, offset: .18 },
+      { transform: 'translate(-50%,-50%) scaleX(.4) scaleY(1.1)', opacity: 0 },
+    ],
+    { duration: 900, easing: 'cubic-bezier(.2,.8,.3,1)' }
+  );
+  kill(el, 920);
+}
+
+async function finishPack() {
+  if (packStage === 'closed') return tearPack();
+  if (packStage !== 'done') return;
+  packStage = 'leaving';
+  $('#packBtn').disabled = true;
+
+  if (packIntro) {
+    SAVE.introLeft--;
+    persist();
+    if (SAVE.introLeft > 0) return enterPack(true);
+    SAVE.introDone = true;
+    autoDeck();
+    persist();
+  } else {
+    const deck = SAVE.deck.filter((id) => SAVE.owned[id] > 0);
+    for (const c of packCards) if (deck.length < 3 && !deck.includes(c.id)) deck.push(c.id);
+    SAVE.deck = deck;
+    persist();
+  }
+
+  // Tek paket zaten tek sayfada duruyor; özet ekranı ancak birden fazlaysa anlamlı.
+  if (haul.length > 3) return enterHaul();
+  await flyToDeck('#packCards');
+  enterLobby();
+}
+
+/* ---------------- ganimet özeti ---------------- */
+
+function enterHaul() {
+  const packs = Math.round(haul.length / 3);
+  $('#haulSub').textContent = `${packs} paket · ${haul.length} kart`;
+  $('#haulGrid').innerHTML = haul.map(({ c, s }) => champCardHtml(c, { serial: s })).join('');
+  show('scr-haul');
+
+  [...$('#haulGrid').children].forEach((n, i) => {
+    n.animate(
+      [{ transform: 'translateY(26px) scale(.9)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+      { duration: 420, delay: 60 + i * 55, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'backwards' }
+    );
+  });
+}
+
+async function finishHaul() {
+  $('#haulBtn').disabled = true;
+  await flyToDeck('#haulGrid');
+  $('#haulBtn').disabled = false;
+  enterLobby();
+}
+
+/* ---------------- kartların desteye uçuşu ---------------- */
+
+/**
+ * Kartlar "Desteni Kur" tuşuna uçar. Süs değil, öğretme: oyuncu az önce açtığı
+ * kartların nereye gittiğini ve desteyi nereden kuracağını görmüş oluyor.
+ */
+async function flyToDeck(fromSel) {
+  const cards = [...$(fromSel).children];
+  if (!cards.length || SCREENS.toDeckMs <= 0) return;
+
+  // Ekran değişince konumlar kaybolur — önce yerlerini ve görünüşlerini al.
+  const rects = cards.map((n) => n.getBoundingClientRect());
+  const html = cards.map((n) => n.outerHTML);
+
+  const layer = $('#fly');
+  const clones = rects.map((r, i) => {
+    const n = document.createElement('div');
+    n.className = 'fly-card';
+    n.innerHTML = html[i];
+    Object.assign(n.style, {
+      left: r.left + 'px', top: r.top + 'px',
+      width: r.width + 'px', height: r.height + 'px',
+    });
+    layer.appendChild(n);
+    return n;
+  });
+
+  enterLobby();
+  await sleep(SCREENS.settleMs);   // ekran girişi otursun ki hedefi doğru ölçelim
+
+  const t = $('#deckBtn').getBoundingClientRect();
+  const tx = t.left + t.width / 2;
+  const ty = t.top + t.height / 2;
+
+  // Sade bir akış: hafif yükselip hedefe süzülüyorlar. Dönme yok, ortada
+  // sıçrama yok — 9 kart aynı anda dönerek uçunca kaos oluyordu.
+  clones.forEach((n, i) => {
+    const r = rects[i];
+    const dx = tx - (r.left + r.width / 2);
+    const dy = ty - (r.top + r.height / 2);
+    const delay = i * SCREENS.toDeckGap;
+
+    n.animate(
+      [
+        { transform: 'translate(0,0) scale(1)', opacity: 1, offset: 0 },
+        { transform: `translate(${dx * .5}px,${dy * .5 - 16}px) scale(.66)`, opacity: 1, offset: .58 },
+        { transform: `translate(${dx}px,${dy}px) scale(.2)`, opacity: 0, offset: 1 },
+      ],
+      { duration: SCREENS.toDeckMs, delay, easing: 'cubic-bezier(.42,.02,.5,1)', fill: 'forwards' }
+    );
+
+    setTimeout(() => n.remove(), SCREENS.toDeckMs + delay);
+  });
+
+  const last = SCREENS.toDeckMs + (clones.length - 1) * SCREENS.toDeckGap;
+  await sleep(last + 40);
+
+  glowDeckBtn();          // tek parıltı, hepsi girdikten sonra
+  layer.innerHTML = '';
+  await sleep(420);
+}
+
+function glowDeckBtn() {
+  const b = $('#deckBtn');
+  b.classList.remove('filled');
+  void b.offsetWidth;
+  b.classList.add('filled');
+  setTimeout(() => b.classList.remove('filled'), 820);
+}
+
+/* ---------------- deste kurma ---------------- */
+
+let draft = [];
+let deckSort = 'power';
+let deckSortDir = 1;      // 1 = azalan, -1 = artan
+let deckFilter = '';      // '' = tümü, yoksa element anahtarı
+
+// ELEMENTS'ten türetiliyor: yeni element eklenince burayı güncellemeyi
+// unutmak filtre çipinin ve element sıralamasının sessizce eksik kalmasına yol açıyor.
+const EL_ORDER = Object.keys(ELEMENTS);
+const RAR_ORDER = { epic: 0, rare: 1, common: 2 };
+
+const SORTERS = {
+  power:   (a, b) => b.atk - a.atk,
+  element: (a, b) => EL_ORDER.indexOf(a.el) - EL_ORDER.indexOf(b.el) || b.atk - a.atk,
+  rarity:  (a, b) => RAR_ORDER[a.rarity] - RAR_ORDER[b.rarity] || b.atk - a.atk,
+};
+
+function sortChamps(list) {
+  const out = [...list].sort(
+    (a, b) => SORTERS[deckSort](a, b) || a.name.localeCompare(b.name, 'tr')
+  );
+  return deckSortDir < 0 ? out.reverse() : out;
+}
+
+function enterDeck() {
+  draft = deckChampions().map((c) => c.id);
+  buildFilterChips();
+  paintDeck();
+  show('scr-deck');
+}
+
+function buildFilterChips() {
+  $('#deckFilter').innerHTML =
+    `<button data-el="" class="on">Tümü</button>` +
+    EL_ORDER.map(
+      (el) => `<button data-el="${el}" style="--c:${ELEMENTS[el].color}"
+                       aria-label="${ELEMENTS[el].name}">${elemIcon(el)}</button>`
+    ).join('');
+}
+
+function paintDeck() {
+  const owned = ownedIds().map(champById);
+  const shown = sortChamps(owned.filter((c) => !deckFilter || c.el === deckFilter));
+
+  $('#deckCount').textContent = `${draft.length}/3`;
+  $('#deckOwned').textContent = deckFilter
+    ? `${shown.length} / ${owned.length}`
+    : `${owned.length}/${CHAMPIONS.length}`;
+  $('#deckSave').disabled = draft.length !== 3;
+
+  for (const b of $('#deckSort').children) b.classList.toggle('on', b.dataset.sort === deckSort);
+  for (const b of $('#deckFilter').children) b.classList.toggle('on', b.dataset.el === deckFilter);
+  $('#deckSort').dataset.dir = deckSortDir < 0 ? 'up' : 'down';
+
+  $('#deckSlots').innerHTML = [0, 1, 2]
+    .map((i) => {
+      const c = champById(draft[i]);
+      return c
+        ? champCardHtml(c, { pick: String(i + 1) })
+        : '<div class="champ empty"><span class="ch-flip"><span class="ch-face"><span class="ch-plus">+</span></span></span></div>';
+    })
+    .join('');
+
+  // Koleksiyon kartları da tam sürüm: seçili olanlarla aynı görünsünler.
+  $('#deckGrid').innerHTML = shown
+    .map((c) => champCardHtml(c, { pick: draft.includes(c.id) ? '✓' : '' }))
+    .join('');
+}
+
+function toggleDraft(id) {
+  const at = draft.indexOf(id);
+  if (at >= 0) draft.splice(at, 1);
+  else if (draft.length < 3) draft.push(id);
+  else return;
+  paintDeck();
+}
+
+function saveDeck() {
+  if (draft.length !== 3) return;
+  SAVE.deck = [...draft];
+  persist();
+  enterLobby();
+}
+
+/* ---------------- bağlantılar ---------------- */
+
+// enterLobby app.js'te ve o dosya bundan SONRA yükleniyor — doğrudan referans
+// verirsek burada ReferenceError atar ve altındaki bağlantılar hiç kurulmaz.
+$('#packBtn').addEventListener('click', finishPack);
+$('#haulBtn').addEventListener('click', finishHaul);
+$('#deckBack').addEventListener('click', () => enterLobby());
+$('#deckSave').addEventListener('click', saveDeck);
+
+$('#deckSlots').addEventListener('click', (e) => {
+  const n = e.target.closest('.champ[data-id]');
+  if (n) toggleDraft(n.dataset.id);
+});
+$('#deckGrid').addEventListener('click', (e) => {
+  const n = e.target.closest('.champ[data-id]');
+  if (n) toggleDraft(n.dataset.id);
+});
+
+// Aynı sıralamaya tekrar dokunmak yönü çeviriyor.
+$('#deckSort').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-sort]');
+  if (!b) return;
+  if (b.dataset.sort === deckSort) deckSortDir *= -1;
+  else { deckSort = b.dataset.sort; deckSortDir = 1; }
+  paintDeck();
+});
+
+$('#deckFilter').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-el]');
+  if (!b) return;
+  deckFilter = b.dataset.el === deckFilter ? '' : b.dataset.el;
+  paintDeck();
+});
+
+
+/* ===== app.js ===== */
+/* Rune Clash — kabuk: lobi, sahte eşleşme, sonuç
+ *
+ * Burada gerçek bir sunucu yok. Amaç PvP *hissi*: arama süresi, rakip profili,
+ * VS ekranı, kalıcı sicil. Loop tutarsa buranın arkasına gerçek ağ kodu girer.
+ */
+
+document.documentElement.lang = 'tr';   // "İ/ı" büyük harfe doğru dönüşsün
+
+const FAKE = {
+  searchMin:   4200,   // arama süresi alt sınır (ms)
+  searchJit:   2000,   // üstüne eklenen rastgelelik — hep 5.0sn olsa sahte hissettirir
+  foundHold:    750,   // "Rakip bulundu!" ekranda kalma süresi
+  versusHold:  2300,   // VS ekranının süresi
+  onlineBase: 12400,   // çevrimiçi oyuncu sayısı tabanı
+};
+
+const FOE_NAMES = [
+  'kaanx_', 'Elifs', 'DarkRune42', 'mertcanbb', 'Zeynep', 'shadowfax',
+  'aslan_44', 'novaa', 'Cerenn', 'Berkay07', 'voidwalker', 'selin.k',
+  'TR_Efe', 'mistral', 'gizemli', 'OguzhanY', 'kR4ken', 'Deniz',
+  'phantom_', 'ayseg', 'burakkk', 'frostbite', 'emir.t', 'luna',
+  'yigit_23', 'nyxx', 'Melis', 'ravenTR', 'cansu00', 'HeleTR',
+];
+
+/* Rakip rütbesi: oyuncununkinin bir alt/üst komşusu. Rastgele seçilince
+   Demir oyuncunun karşısına Elmas çıkıyordu ve eşleşme sahteliği ele veriyordu. */
+function foeRankLabel() {
+  const t = isPlaced() ? SAVE.tier : 2;
+  const komsu = Math.max(0, Math.min(TIERS.length - 1, t + (Math.random() < .5 ? -1 : 1) * (Math.random() < .7 ? 0 : 1)));
+  const tier = TIERS[komsu];
+  return tier.apex ? tier.name : `${tier.name} ${DIV_ROMAN[1 + Math.floor(Math.random() * 4)]}`;
+}
+
+// Aşağıdaki üçü `let`: assets/icons/ altında karşılığı varsa değiştiriliyor.
+let MARK_SVG = `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor"
+  stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M50 6 L94 50 L50 94 L6 50 Z"/>
+  <path d="M50 24 L50 76"/>
+  <path d="M64 38 L50 50 L64 62"/>
+  <path d="M36 38 L50 50 L36 62"/></svg>`;
+
+let ICON_DECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3.5" y="6" width="9" height="13" rx="1.6"/>
+  <path d="M8 4.6h7.2a1.6 1.6 0 0 1 1.6 1.6v11"/>
+  <path d="M12.4 3.4h6.5a1.6 1.6 0 0 1 1.6 1.6v9.6"/></svg>`;
+
+let ICON_PACK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4.5 7.5h15v12a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5z"/>
+  <path d="M4.5 7.5 6 3.4h12l1.5 4.1"/>
+  <path d="M12 3.4v17.6"/></svg>`;
+
+let ICON_COIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8.6"/>
+  <path d="M12 6.4 14 12l-2 5.6L10 12z"/>
+  <path d="M6.4 12h11.2"/></svg>`;
+
+/* Rütbe amblemleri — element sembolleriyle aynı dil: 100×100, çizgi tabanlı,
+ * `currentColor` ile kademe rengini alıyorlar.
+ *
+ * Merdiven yükseldikçe siluet değişiyor: kalkan (Demir–Platin) → taş
+ * (Zümrüt–Elmas) → taç (Usta+). Sadece süs eklemek yerine şeklin kendisi
+ * değişiyor ki 20px'te bile hangi kademe olduğu ayırt edilsin.
+ *
+ * Riot'un amblemleri kopyalanmadı; bunlar oyunun kendi çizim dili. */
+/* Amblemler DOLU çiziliyor (element sembolleri gibi çizgi tabanlı değil):
+ * küçük boyutta dolu siluet çok daha okunur, madalya gibi duruyor.
+ *
+ * Detaylar üste ÇİZİLMİYOR, siluetten OYULUYOR — `fill-rule="evenodd"` ile
+ * iç içe geçen alt yollar delik açıyor ve koyu zemin oradan görünüyor. Önce
+ * aynı rengi düşük opaklıkla üste koymayı denedim: aynı renk aynı rengin
+ * üstünde kayboluyordu, hepsi düz kalkan gibi çıkmıştı.
+ *
+ * Tek renkli kalıyorlar: `currentColor` ile kademe rengini alıyorlar ve
+ * assets/icons/rank-<kademe>.svg konursa bütün olarak değişiyorlar. */
+const oyma = (...yollar) => `<path fill-rule="evenodd" d="${yollar.join(' ')}"/>`;
+const dolu = (d) => `<path d="${d}"/>`;
+
+const KALKAN = 'M50 9 L85 22 V50 C85 73 68 86 50 93 C32 86 15 73 15 50 V22 Z';
+
+// Kanatlar: Platin'den itibaren kademe yükseldiğini siluetten okutuyor.
+const KANAT = dolu('M15 39 C4 42 1 56 7 68 C10 57 11 48 17 45 Z')
+            + dolu('M85 39 C96 42 99 56 93 68 C90 57 89 48 83 45 Z');
+
+const TAC  = 'M25 23 L36 42 L50 13 L64 42 L75 23 L71 52 H29 Z';
+const ROMB = 'M50 56 L73 75 L50 94 L27 75 Z';
+const ROMB_IC = 'M50 68 L61 75 L50 82 L39 75 Z';
+
+const RANK_ART = {
+  demir:  oyma(KALKAN),
+  bronz:  oyma(KALKAN, 'M36 45 H64 V55 H36 Z'),
+  gumus:  oyma(KALKAN, 'M34 37 L50 49 L66 37 L66 50 L50 62 L34 50 Z'),
+  altin:  oyma(KALKAN, 'M50 27 L57 46 L76 53 L57 60 L50 79 L43 60 L24 53 L43 46 Z'),
+  platin: oyma(KALKAN, 'M50 31 L66 53 L50 75 L34 53 Z') + KANAT,
+
+  // Taş kademeleri: dış hat + oyulmuş halka + ortada masa.
+  zumrut: oyma('M50 8 L86 30 V70 L50 92 L14 70 V30 Z',
+               'M50 24 L72 37 V63 L50 76 L28 63 V37 Z')
+          + dolu('M50 34 L62 41 V59 L50 66 L38 59 V41 Z'),
+  elmas:  oyma('M50 6 L90 50 L50 94 L10 50 Z', 'M50 24 L74 50 L50 76 L26 50 Z')
+          + dolu('M50 36 L63 50 L50 64 L37 50 Z') + KANAT,
+
+  usta:      oyma(TAC) + oyma(ROMB, ROMB_IC),
+  buyukusta: oyma(TAC) + oyma(ROMB, ROMB_IC) + KANAT,
+  sampiyon:  oyma('M22 32 L34 52 L50 20 L66 52 L78 32 L74 62 H26 Z',
+                  'M40 44 L50 34 L60 44 L50 54 Z')
+             + oyma('M50 66 L69 80 L50 94 L31 80 Z', 'M50 74 L59 80 L50 86 L41 80 Z')
+             + dolu('M50 4 L54 10 L50 16 L46 10 Z')
+             + dolu('M6 42 L1 50 L6 58 L11 50 Z') + dolu('M94 42 L99 50 L94 58 L89 50 Z'),
+};
+
+let RANK_SVG = {};
+for (const [key, art] of Object.entries(RANK_ART)) {
+  RANK_SVG[key] = `<svg viewBox="0 0 100 100" fill="currentColor">${art}</svg>`;
+}
+
+/** Kademenin amblemi, kendi renginde. `boy` CSS uzunluğu (örn. '18px'). */
+function rankIcon(tier, boy = '1em') {
+  const t = TIERS[tier];
+  return `<span class="rank-ico" style="width:${boy};height:${boy};color:${t.color}">${RANK_SVG[t.key]}</span>`;
+}
+
+// Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
+// sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
+const BUILD = 31;
+
+const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
+
+/* ---------------- rakip üretimi ---------------- */
+
+/**
+ * Rakip, oyuncunun destesiyle AYNI nadirlik dağılımını alır.
+ * Böylece koleksiyon derinleştikçe denge kaymıyor — güçlü kart toplamak
+ * seni güçlendiriyor ama karşına da benzer güçte biri çıkıyor.
+ * Elementleri rastgele: eşleşme çeşitliliği kalsın.
+ */
+function makeFoe() {
+  const rarities = deckChampions().map((c) => c.rarity);
+  const els = shuffle(Object.keys(ELEMENTS));
+  const shape = [els[0], els[0], els[1]];   // iki elementli comp
+  const used = new Set();
+
+  const units = rarities.map((rarity, i) => {
+    // 1) hedef element + doğru nadirlik
+    let pool = CHAMPIONS.filter((c) => c.el === shape[i] && c.rarity === rarity && !used.has(c.id));
+    // 2) yoksa NADİRLİĞİ koru, elementten vazgeç — güç eşitliği comp şeklinden önemli.
+    //    (her elementte tek destansı var; üç destansılı desteye karşı aksi hâlde
+    //     zayıf rakip çıkıyordu)
+    if (!pool.length) pool = CHAMPIONS.filter((c) => c.rarity === rarity && !used.has(c.id));
+    if (!pool.length) pool = CHAMPIONS.filter((c) => !used.has(c.id));
+    const c = pickRandom(pool);
+    used.add(c.id);
+    return { id: 'a' + i, name: c.name, el: c.el, atk: c.atk };
+  });
+
+  return {
+    name: pickRandom(FOE_NAMES),
+    level: 8 + Math.floor(Math.random() * 33),
+    rank: foeRankLabel(),
+    units,
+  };
+}
+
+/* ---------------- görsel yardımcılar ---------------- */
+
+// Lobi ve VS ekranındaki takım kartları — can barı yok, sadece kimlik
+function renderSquad(sel, units) {
+  $(sel).innerHTML = units
+    .map(
+      (u) => `
+    <div class="unit" style="--c:${ELEMENTS[u.el].color}">
+      <div class="row1">
+        <span class="glyph">${elemIcon(u.el)}</span>
+        <span class="name">${u.name}</span>
+        <span class="atk">${u.atk}</span>
+      </div>
+    </div>`
+    )
+    .join('');
+}
+
+function setAvatar(sel, name, el) {
+  const node = $(sel);
+  node.textContent = name[0].toUpperCase();
+  node.style.setProperty('--c', el ? ELEMENTS[el].color : '#7d6bb5');
+}
+
+function show(id) {
+  for (const s of document.querySelectorAll('.screen')) s.classList.toggle('active', s.id === id);
+}
+
+/* ---------------- lobi ---------------- */
+
+let onlineTimer = null;
+
+function enterLobby() {
+  clearSearch();
+  $('#overlay').hidden = true;
+  $('#brandMark').innerHTML = MARK_SVG;
+  $('#radarCore').innerHTML = MARK_SVG;
+
+  const squad = playerSquad();
+  setAvatar('#meAvatar', 'Sen', squad[0] && squad[0].el);
+  $('#meRank').innerHTML = (isPlaced() ? rankIcon(SAVE.tier, '15px') : '') + rankLabel();
+  $('#meLp').textContent = isPlaced() ? ` · ${SAVE.lp} LP` : '';
+  $('#meRecord').textContent = `${SAVE.wins}G ${SAVE.losses}M`;
+  $('#buildTag').textContent = `yapım ${BUILD} · ${ownedIds().length} kart`;
+  renderSquad('#lobbyTeam', squad);
+
+  $('#deckIco').innerHTML = ICON_DECK;
+  $('#packIco').innerHTML = ICON_PACK;
+  $('#coinIco').innerHTML = ICON_COIN;
+  $('#deckSub').textContent = `${ownedIds().length} kart`;
+
+  // Satın alma tuşu HER ZAMAN açık: parası yetmese bile içeri girip fiyatı ve
+  // ne kadar eksiği olduğunu görebilmeli. Kapalı bir tuş bunu söylemiyor.
+  $('#coinCount').textContent = SAVE.coins;
+
+  const pb = $('#openPackBtn');
+  pb.disabled = SAVE.packs === 0;
+  pb.classList.toggle('ready', SAVE.packs > 0);
+  $('#packSub').textContent = SAVE.packs > 0 ? 'hazır' : 'kazanarak al';
+  $('#packBadge').hidden = SAVE.packs === 0;
+  $('#packBadge').textContent = SAVE.packs;
+
+  show('scr-lobby');
+
+  // çevrimiçi sayacı hafifçe oynasın — sabit sayı ölü hissettiriyor
+  clearInterval(onlineTimer);
+  let n = FAKE.onlineBase + Math.floor(Math.random() * 900);
+  const paint = () => ($('#onlineCount').textContent = n.toLocaleString('tr-TR'));
+  paint();
+  onlineTimer = setInterval(() => {
+    n += Math.floor(Math.random() * 31) - 14;
+    paint();
+  }, 1400);
+}
+
+/* ---------------- eşleşme arama ---------------- */
+
+const SEARCH_STAGES = [
+  [1600, 'Yakın seviyede oyuncu aranıyor…'],
+  [3300, 'Bağlantı kuruluyor…'],
+];
+
+let searchTimers = [];
+
+function clearSearch() {
+  searchTimers.forEach(clearTimeout);
+  searchTimers.forEach(clearInterval);
+  searchTimers = [];
+}
+
+function startSearch() {
+  clearSearch();
+  const txt = $('#searchText');
+  txt.textContent = 'Rakip aranıyor…';
+  txt.classList.remove('found');
+  $('#searchTimer').textContent = '0.0s';
+  show('scr-search');
+
+  const t0 = performance.now();
+  const tick = setInterval(() => {
+    $('#searchTimer').textContent = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+  }, 100);
+  searchTimers.push(tick);
+
+  for (const [at, label] of SEARCH_STAGES) {
+    searchTimers.push(setTimeout(() => (txt.textContent = label), at));
+  }
+
+  const dur = FAKE.searchMin + Math.random() * FAKE.searchJit;
+  searchTimers.push(
+    setTimeout(() => {
+      clearInterval(tick);
+      $('#searchTimer').textContent = (dur / 1000).toFixed(1) + 's';
+      txt.textContent = 'Rakip bulundu!';
+      txt.classList.add('found');
+      searchTimers.push(setTimeout(() => enterVersus(makeFoe()), FAKE.foundHold));
+    }, dur)
+  );
+}
+
+/* ---------------- VS ekranı ---------------- */
+
+function enterVersus(foe) {
+  const squad = playerSquad();
+  setAvatar('#vsMeAvatar', 'Sen', squad[0] && squad[0].el);
+  $('#vsMeLevel').textContent = myLevel();
+  $('#vsMeRank').innerHTML = (isPlaced() ? rankIcon(SAVE.tier, '13px') : '') + rankLabel();
+  renderSquad('#vsMeTeam', squad);
+
+  setAvatar('#vsFoeAvatar', foe.name, foe.units[0].el);
+  $('#vsFoeName').textContent = foe.name;
+  $('#vsFoeLevel').textContent = foe.level;
+  $('#vsFoeRank').textContent = foe.rank;
+  renderSquad('#vsFoeTeam', foe.units);
+
+  show('scr-versus');
+  searchTimers.push(setTimeout(() => enterBattle(foe), FAKE.versusHold));
+}
+
+/* ---------------- savaş ---------------- */
+
+function enterBattle(foe) {
+  // Zorluk rütbeden geliyor. aiRecall burada set ediliyor, startBattle'da değil:
+  // denge simülasyonu kadranı kendi çevirebilsin diye.
+  CFG.aiRecall = rankRecall();
+  show('scr-battle');
+  startBattle(foe, finishBattle);
+}
+
+async function finishBattle(winner) {
+  const won = winner === 'player';
+  if (won) SAVE.wins++; else SAVE.losses++;
+
+  // Paket artık her galibiyette gelmiyor: Rune Coin ile alınıyor ve rütbe
+  // atlayınca bedava geliyor. İkisi birden olsaydı coin'in bir anlamı kalmazdı.
+  const r = applyMatchResult(won);
+
+  await sleep(700); // son vuruş ekranda otursun
+
+  /* Rütbe değiştiyse o anı oynat ve DOĞRUDAN lobiye dön.
+   *
+   * Animasyon zaten sonucu ve yeni rütbeyi gösteriyor; üstüne bir de sonuç
+   * ekranı çıkarmak fazladan bir dokunuş oluyordu. Sonuç ekranındaki bilgi
+   * kaybolmasın diye kazanılanlar animasyonun altına yazılıyor. */
+  const rutbeDegisti = r.rankUps > 0 || r.dustu || r.placementDone;
+  if (rutbeDegisti) {
+    const not = [`+${r.coins} Rune Coin`]
+      .concat(r.rankUps > 0 ? [`+${r.rankUps} bedava paket`] : [])
+      .join('<br>');
+
+    if (r.rankUps > 0)          await playRankFx('up', r.etiket, null, not);
+    else if (r.dustu)           await playRankFx('down', r.etiket, null, not);
+    else if (r.placementDone)   await playRankFx('up', r.etiket, 'YERLEŞTİN', not);
+
+    enterLobby();
+    return;
+  }
+
+  $('#overTitle').textContent = won ? 'Kazandın' : 'Kaybettin';
+  $('#overTitle').style.color = won ? '#9ff0c4' : '#ffb0a0';
+  $('#overSub').innerHTML =
+    `<b>${S.foe.name}</b> · ${S.foe.rank} · Sv ${S.foe.level}<br>` +
+    `${S.round}. tahtada bitti · Sicilin ${SAVE.wins}G ${SAVE.losses}M`;
+
+  const satir = [`<span class="rw-coin">+${r.coins} Rune Coin</span>`];
+
+  if (r.placement) {
+    satir.push(r.placementDone
+      ? `<span class="rw-up">Yerleştirme bitti · <b>${r.etiket}</b></span>`
+      : `<span class="rw-lp">Yerleştirme ${SAVE.placeGames}/${PLACEMENT_GAMES}</span>`);
+  } else {
+    satir.push(`<span class="rw-lp">${r.lp > 0 ? '+' : ''}${r.lp} LP · ${r.etiket} ${SAVE.lp} LP</span>`);
+    if (r.rankUps > 0) {
+      satir.push(`<span class="rw-up">Rütbe atladın — <b>${r.etiket}</b></span>`);
+      satir.push(`<span class="rw-up">+${r.rankUps} bedava paket</span>`);
+    }
+    if (r.dustu) satir.push(`<span class="rw-down">Rütbe düştün — ${r.etiket}</span>`);
+  }
+
+  $('#overRewards').innerHTML = satir.join('');
+  $('#overlay').hidden = false;
+}
+
+/* ---------------- rütbe değişimi anı ---------------- */
+
+/**
+ * Tam ekran rütbe animasyonu. Vurgu amblemin KENDİSİNDEN çıkan ışıkla
+ * yapılıyor — saçılan parçacıklarla değil; kartlarda da aynı tercih var.
+ *
+ * Süre CFG.spellTravel gibi ayarlanabilir bir yerde değil çünkü maç içinde
+ * değil: fastMode simülasyonu buraya hiç uğramıyor (finishBattle DOM işidir).
+ */
+async function playRankFx(yon, etiket, kelime, not = '') {
+  const t = TIERS[SAVE.tier];
+  const fx = $('#rankFx');
+
+  $('#rfxEmblem').innerHTML = rankIcon(SAVE.tier, '100%');
+  $('#rfxWord').textContent = kelime || (yon === 'up' ? 'RÜTBE ATLADIN' : 'RÜTBE DÜŞTÜN');
+  $('#rfxRank').textContent = etiket;
+  $('#rfxNote').innerHTML = not;
+  fx.style.setProperty('--rc', t.color);
+  fx.className = yon;            // .up / .down — animasyonları ayrı
+  fx.hidden = false;
+
+  // Sonuç ekranı artık arkasından gelmiyor, tek gösterilen bu — okunacak
+  // kadar dursun (kazanılan coin ve paket de burada yazıyor).
+  await sleep(yon === 'up' ? 2600 : 2200);
+  fx.hidden = true;
+  fx.className = '';
+}
+
+/* ---------------- paket satın alma ---------------- */
+
+let buyQty = 1;
+
+function openBuySheet() {
+  buyQty = 1;
+  $('#packPrice').textContent = PACK_PRICE;
+  renderBuySheet();
+  $('#buySheet').hidden = false;
+}
+
+function renderBuySheet() {
+  const max = affordablePacks();
+  // Parası hiç yetmese bile 1 gösteriliyor: fiyatı ve ne kadar eksiği olduğunu
+  // görsün. Sıfır gösterip tuşu kilitlemek sebebi söylemiyor.
+  const ustSinir = Math.max(1, max);
+  buyQty = Math.max(1, Math.min(buyQty, ustSinir));
+
+  const tutar = buyQty * PACK_PRICE;
+  const yetiyor = tutar <= SAVE.coins;
+
+  $('#qtyVal').textContent = buyQty;
+  $('#qtyMinus').disabled = buyQty <= 1;
+  $('#qtyPlus').disabled = buyQty >= ustSinir;
+  $('#qtyMax').hidden = max <= 1 || buyQty === max;
+
+  $('#buyTotal').classList.toggle('eksik', !yetiyor);
+  $('#buyTotal').innerHTML =
+    `<b>${tutar}</b> / ${SAVE.coins} Rune Coin` +
+    `<span class="sheet-note">${yetiyor
+      ? `kalan: ${SAVE.coins - tutar}`
+      : `${tutar - SAVE.coins} Rune Coin daha lazım`}</span>`;
+
+  $('#buyConfirm').disabled = !yetiyor;
+  $('#buyConfirm').textContent = yetiyor ? 'SATIN AL' : 'YETERLİ COIN YOK';
+}
+
+/* ---------------- bağlantılar ---------------- */
+
+$('#findBtn').addEventListener('click', startSearch);
+$('#cancelBtn').addEventListener('click', enterLobby);
+$('#leaveBtn').addEventListener('click', enterLobby);
+$('#lobbyBtn').addEventListener('click', enterLobby);
+$('#deckBtn').addEventListener('click', enterDeck);
+$('#openPackBtn').addEventListener('click', () => {
+  if (SAVE.packs <= 0) return;
+  SAVE.packs--;
+  persist();
+  enterPack(false);
+});
+$('#againBtn').addEventListener('click', () => {
+  $('#overlay').hidden = true;
+  startSearch();
+});
+
+$('#buyPackBtn').addEventListener('click', openBuySheet);
+$('#qtyMinus').addEventListener('click', () => { buyQty--; renderBuySheet(); });
+$('#qtyPlus').addEventListener('click', () => { buyQty++; renderBuySheet(); });
+$('#qtyMax').addEventListener('click', () => { buyQty = affordablePacks(); renderBuySheet(); });
+$('#buyCancel').addEventListener('click', () => { $('#buySheet').hidden = true; });
+$('#buyConfirm').addEventListener('click', () => {
+  const alinan = buyPacks(buyQty);
+  $('#buySheet').hidden = true;
+  if (!alinan) return;
+  enterLobby();          // cüzdan ve paket rozeti tazelensin
+  SAVE.packs--;          // ilki hemen açılıyor, kalanlar rozette birikiyor
+  persist();
+  enterPack(false);
+});
+
+// Kaydı sıfırla — prototipte ilk açılış deneyimini tekrar tekrar görmek gerekiyor.
+// İki dokunuş: yanlışlıkla basılmasın, ama diyalog kutusu da açmasın.
+let resetArmed = null;
+$('#resetBtn').addEventListener('click', (e) => {
+  const b = e.currentTarget;
+  if (!resetArmed) {
+    b.textContent = 'emin misin? tekrar dokun';
+    b.classList.add('armed');
+    resetArmed = setTimeout(() => {
+      resetArmed = null;
+      b.textContent = 'kaydı sıfırla';
+      b.classList.remove('armed');
+    }, 3000);
+    return;
+  }
+  clearTimeout(resetArmed);
+  try { localStorage.removeItem(SAVE_KEY); } catch {}
+  location.reload();
+});
+
+/* ---------------- görsel geçersiz kılma ---------------- */
+
+/**
+ * `src/assets/icons/<ad>.svg` varsa koddaki çizimin yerine geçer.
+ *
+ * Kullanıcı kendi tasarımını dosyaya koyup sayfayı yeniliyor — kod değişikliği
+ * gerekmiyor. Dosya yoksa ya da içi bozuksa koddaki çizim kalıyor, yani hiçbir
+ * durumda ikon kaybolmuyor.
+ *
+ * SVG bütün olarak değiştiriliyor: kullanıcının kendi viewBox'ı ve çizgi
+ * kalınlığı geçerli oluyor. Renk vermemesi yeterli — `currentColor` sayesinde
+ * aynı çizim altı elementte de, altın amblemde de doğru renkte çıkıyor.
+ */
+async function loadIcons() {
+  const slots = [
+    ...Object.keys(ICON_SVG).map((el) => [el, (svg) => (ICON_SVG[el] = svg)]),
+    ['mark',      (svg) => (MARK_SVG = svg)],
+    ['ui-deck',   (svg) => (ICON_DECK = svg)],
+    ['ui-pack',   (svg) => (ICON_PACK = svg)],
+    ['ui-coin',   (svg) => (ICON_COIN = svg)],
+    // rütbe amblemleri: assets/icons/rank-<kademe>.svg
+    ...TIERS.map((t) => [`rank-${t.key}`, (svg) => (RANK_SVG[t.key] = svg)]),
+    ['rune-mark', (svg) => (CARD_BACK_SVG = svg)],
+  ];
+
+  // en az bir <svg> ve içinde bir çizim olsun — boş/bozuk dosya ikonu silmesin
+  const gecerli = (t) => /<svg[\s>]/i.test(t) &&
+    /<(path|circle|rect|polyline|polygon|line|ellipse|g)[\s>]/i.test(t);
+
+  await Promise.all(
+    slots.map(async ([name, apply]) => {
+      // Tek dosyalık yapımda ikonlar sayfaya gömülü geliyor (tools-build-single.js),
+      // istek atılacak bir sunucu yok. Gömülü yoksa dosyadan okumaya devam.
+      const gomulu = window.__ICONS && window.__ICONS[name];
+      if (gomulu) { if (gecerli(gomulu)) apply(gomulu); return; }
+
+      try {
+        const r = await fetch(`assets/icons/${name}.svg`, { cache: 'no-store' });
+        if (!r.ok) return;
+        const txt = (await r.text()).trim();
+        if (gecerli(txt)) apply(txt);
+      } catch { /* dosya yok: koddaki çizim kalsın */ }
+    })
+  );
+}
+
+/* ---------------- açılış ---------------- */
+
+(async () => {
+  await loadIcons();
+  showLoading(() => {
+    if (!SAVE.introDone || ownedIds().length === 0) enterPack(true);   // başlangıç serisi
+    else enterLobby();
+  });
+})();
+
+</script>
