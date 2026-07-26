@@ -1403,14 +1403,6 @@ button.ghost:active { background: var(--panel); }
   border-radius: 10px;
   background: rgba(255,255,255,.02);
 }
-.syn-lbl {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .09em;
-  color: var(--muted);
-  text-transform: uppercase;
-  flex: 0 0 auto;
-}
 .syn-bos { font-size: 10.5px; color: var(--muted); opacity: .7; }
 
 .syn-chip {
@@ -1438,18 +1430,35 @@ button.ghost:active { background: var(--panel); }
   color: var(--muted);
   letter-spacing: .02em;
 }
+/* Dolu ve yazılı: önce 24px'lik soluk bir daireydi, ne tıklanabilir olduğu
+   ne de neyi açtığı anlaşılıyordu. Dolgu dokunma hedefini de 44pt'ye taşıyor. */
 .syn-info {
   flex: 0 0 auto;
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  color: var(--muted);
-  font: 800 12px/1 inherit;
-  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 13px;
+  margin: -5px 0;                       /* şeridi yükseltmeden hedefi büyüt */
+  background: linear-gradient(160deg, #cfc6ea, #a99ede);
+  color: #1b1630;
+  font: 800 10.5px/1 inherit;
+  letter-spacing: .09em;
   cursor: pointer;
+  box-shadow: 0 2px 10px -5px #a99ede;
 }
-.syn-info:active { transform: scale(.92); }
+.syn-info i {
+  display: grid;
+  place-items: center;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: #1b1630;
+  color: #cfc6ea;
+  font: 800 10px/1 Georgia, serif;
+  font-style: italic;
+}
+.syn-info:active { transform: scale(.96); }
 
 /* --- açıklama penceresi --- */
 
@@ -5004,11 +5013,12 @@ function renderSynergy() {
       </span>`).join('');
 
   $('#deckSyn').innerHTML = `
-    <span class="syn-lbl">Sinerji</span>
     ${cipler || '<span class="syn-bos">kart seç</span>'}
-    <span class="syn-need">bar ${gerek} şarj</span>
-    <button class="syn-info" id="synInfo" aria-label="Sinerji açıklamaları">i</button>`;
-  $('#synInfo').addEventListener('click', openSynSheet);
+    <span class="syn-need">${gerek} şarj</span>
+    <button class="syn-info" id="synInfo">
+      <i>i</i>SİNERJİ
+    </button>`;
+  $('#synInfo').addEventListener('click', (e) => { e.stopPropagation(); openSynSheet(); });
 }
 
 /** Açıklamalar penceresi: altı yeteneğin hepsi, sahip olmasan bile. */
@@ -5033,7 +5043,11 @@ function openSynSheet() {
     `Hasarlı eşleşme 1 şarj · üst üste eşleşme +1 · bar ${gerek} şarjda dolar ` +
     `· dolunca son eşleştirdiğin elementin yeteneği çıkar`;
   $('#synSheet').hidden = false;
+  // Açılış tıklaması arka plana ulaşıp pencereyi anında kapatabiliyor.
+  synAcilis = Date.now();
 }
+let synAcilis = 0;
+const synKapanabilir = () => Date.now() - synAcilis > 250;
 
 function toggleDraft(id) {
   const at = draft.indexOf(id);
@@ -5212,7 +5226,7 @@ function rankIcon(tier, boy = '1em') {
 
 // Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
 // sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
-const BUILD = 35;
+const BUILD = 36;
 
 const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
 
@@ -5544,7 +5558,8 @@ $('#qtyMax').addEventListener('click', () => { buyQty = affordablePacks(); rende
 $('#buyCancel').addEventListener('click', () => { $('#buySheet').hidden = true; });
 $('#synClose').addEventListener('click', () => { $('#synSheet').hidden = true; });
 $('#synSheet').addEventListener('click', (e) => {
-  if (e.target.id === 'synSheet') $('#synSheet').hidden = true;   // dışına dokun, kapan
+  // dışına dokun, kapan — ama açılış tıklamasının kendisiyle değil
+  if (e.target.id === 'synSheet' && synKapanabilir()) $('#synSheet').hidden = true;
 });
 $('#buyConfirm').addEventListener('click', () => {
   const alinan = buyPacks(buyQty);
