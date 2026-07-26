@@ -2578,9 +2578,13 @@ const CFG = {
   elemBias:      3,    // destende olan elemente eklenen ağırlık (oyuncu VE rakip)
   maxChain:     3,     // aynı taraf üst üste en fazla kaç hasarlı eşleşme yapabilir
 
-  // aiRecall tek başına tüm zorluk kadranı — 60'ar maçlık simülasyonla ölçüldü.
-  // Ortalama bir oyuncuya karşı kazanma oranın: 0.35 → %58 | 0.45 → %35 | 0.55 → %22 | 0.78 → %10
-  aiRecall:     0.35,  // AI açılan bir kartı hatırlama olasılığı
+  // aiRecall tek başına tüm zorluk kadranı. Maça girerken rütbeden set ediliyor
+  // (app.js → enterBattle); buradaki değer yalnızca doğrudan startBattle çağıran
+  // simülasyonların gördüğü taban — merdivenin ortasına (Platin) eşitlendi ki
+  // ayarlamayı unutan bir koşu en azından temsili bir zorluk ölçsün.
+  // Ölçüm (hafıza 0.70'lik oyuncu, 300'er maç, yapım 39):
+  //   0.35 → %89 | 0.50 → %73 | 0.60 → %67 | 0.70 → %52 | 0.80 → %39
+  aiRecall:     0.71,  // AI açılan bir kartı hatırlama olasılığı
   aiForget:     0.12,  // her turda bir anıyı unutma olasılığı
   aiDenyChance: 0.55,  // işine yaramayan ama oyuncunun işine yarayan çifti alma eğilimi
                        // (ölçüldü: dengeye etkisi ihmal edilebilir, his için duruyor)
@@ -4292,30 +4296,41 @@ function autoDeck() {
 
 /* recall = yapay zekanın hatırlama olasılığı, tek başına tüm zorluk kadranı.
  *
- * Kademe başına +0.02 — bilerek küçük. 400'er maçlık ölçümde ortalama oyuncu
- * (hafıza 0.70) için kademe başına ~2-3 puanlık kazanma oranı farkı ediyor;
- * merdivenin iki ucu arasında ~30 puan. Beceri farkı bundan büyük kalıyor
- * (aynı kademede hafıza 0.4 → 1.0 arası ~35 puan), yani rütbe beceriyi
- * gölgelemiyor — oyunun en önemli doğrulaması buydu, korunması şart.
+ * BANT BİR KEZ TAŞINDI (yapım 39). Eski değerler 0.17–0.35 arasındaydı ve
+ * ölçüldüğünde merdivenin HİÇBİR ŞEY YAPMADIĞI çıktı: ortalama oyuncu (hafıza
+ * 0.70) Demir'de %96.7, Şampiyon'da %89 kazanıyordu — on kademe boyunca fark
+ * gürültünün içinde kayboluyordu. Sebep: kazanma oranı 0.35'in altında doyuma
+ * ulaşıyor, eğri orada düz. Yeni bant eğrinin gerçekten ısırdığı yerde.
  *
- * Değerler merdivenin ORTASI dengede olacak şekilde konumlandı: ortalama
- * oyuncu 0.24 civarında %50 kazanıyor, o da Altın/Platin'e denk geliyor.
- * İlk denemede tüm eğri 0.06 yukarıdaydı ve ortalama oyuncu Gümüş'te bile
- * %37'de kalıyordu — merdiven tırmanılamıyordu. */
+ * Ölçülen eğri (hafıza 0.70'lik oyuncu, 300'er maç):
+ *   ai 0.35 → %89 | 0.50 → %73 | 0.60 → %67 | 0.70 → %52 | 0.80 → %39
+ *
+ * Kademe başına +0.025 — ortalama oyuncu için kademe başına ~3 puan, merdivenin
+ * iki ucu arasında 30 puan (Demir %63 → Şampiyon %34). Beceri farkı bundan
+ * BÜYÜK kalıyor: aynı kademede hafıza 0.4 → 1.0 arası 54 puan (%15.7 → %69.7).
+ * Rütbenin beceriyi gölgelememesi oyunun en önemli doğrulaması, korunması şart.
+ *
+ * Merdivenin oturduğu yer (%50 çizgisinin düştüğü kademe):
+ *   hafıza 0.55 → Demir/Bronz · 0.70 → Altın/Platin · 0.85 → Şampiyon
+ *
+ * TUZAK: bu değerler savaşa `enterBattle` üzerinden giriyor (app.js). Bir
+ * simülasyon `startBattle`'ı doğrudan çağırıyorsa oraya hiç uğramaz ve
+ * CFG.aiRecall'ın o anki değerini ölçer. Eski merdivenin hiç ölçülmemiş
+ * olmasının sebebi buydu. Simülasyonda aiRecall'ı KENDİN ayarla. */
 /* key: amblem dosyasının adı (assets/icons/rank-<key>.svg)
    color: kademe rengi — amblem currentColor ile bunu alıyor */
 const TIERS = [
   //                                            apex: bölümü yok, LP birikiyor
-  { name: 'Demir',      key: 'demir',     color: '#8a8694', apex: false, recall: 0.17 },
-  { name: 'Bronz',      key: 'bronz',     color: '#b0743f', apex: false, recall: 0.19 },
-  { name: 'Gümüş',      key: 'gumus',     color: '#b9c5d2', apex: false, recall: 0.21 },
-  { name: 'Altın',      key: 'altin',     color: '#e6b53f', apex: false, recall: 0.23 },
-  { name: 'Platin',     key: 'platin',    color: '#4fc9b4', apex: false, recall: 0.25 },
-  { name: 'Zümrüt',     key: 'zumrut',    color: '#41c478', apex: false, recall: 0.27 },
-  { name: 'Elmas',      key: 'elmas',     color: '#71adf0', apex: false, recall: 0.29 },
-  { name: 'Usta',       key: 'usta',      color: '#ad6be6', apex: true,  recall: 0.31 },
-  { name: 'Büyük Usta', key: 'buyukusta', color: '#e66565', apex: true,  recall: 0.33 },
-  { name: 'Şampiyon',   key: 'sampiyon',  color: '#f2dc90', apex: true,  recall: 0.35 },
+  { name: 'Demir',      key: 'demir',     color: '#8a8694', apex: false, recall: 0.610 },
+  { name: 'Bronz',      key: 'bronz',     color: '#b0743f', apex: false, recall: 0.635 },
+  { name: 'Gümüş',      key: 'gumus',     color: '#b9c5d2', apex: false, recall: 0.660 },
+  { name: 'Altın',      key: 'altin',     color: '#e6b53f', apex: false, recall: 0.685 },
+  { name: 'Platin',     key: 'platin',    color: '#4fc9b4', apex: false, recall: 0.710 },
+  { name: 'Zümrüt',     key: 'zumrut',    color: '#41c478', apex: false, recall: 0.735 },
+  { name: 'Elmas',      key: 'elmas',     color: '#71adf0', apex: false, recall: 0.760 },
+  { name: 'Usta',       key: 'usta',      color: '#ad6be6', apex: true,  recall: 0.785 },
+  { name: 'Büyük Usta', key: 'buyukusta', color: '#e66565', apex: true,  recall: 0.810 },
+  { name: 'Şampiyon',   key: 'sampiyon',  color: '#f2dc90', apex: true,  recall: 0.835 },
 ];
 
 const APEX_FROM = 7;                 // Usta'dan itibaren bölüm yok
@@ -5221,7 +5236,7 @@ function rankIcon(tier, boy = '1em') {
 
 // Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
 // sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
-const BUILD = 38;
+const BUILD = 39;
 
 const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
 
