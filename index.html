@@ -1392,30 +1392,90 @@ button.ghost:active { background: var(--panel); }
 
 /* ---------- sinerji rehberi (deste ekranı) ---------- */
 
+/* Şerit tek satır: sembol + sayı. Yüksekliği kartların yerini almamalı. */
 .syn {
-  margin: 10px 0 2px;
-  padding: 10px 11px 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 2px;
+  padding: 6px 7px 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255,255,255,.02);
 }
-.syn-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--muted);
-  letter-spacing: .03em;
-}
-.syn-head b { font-size: 12.5px; color: var(--text); letter-spacing: .06em; }
-.syn-note {
+.syn-lbl {
   font-size: 10px;
-  line-height: 1.45;
+  font-weight: 700;
+  letter-spacing: .09em;
   color: var(--muted);
-  opacity: .8;
-  margin: 4px 0 8px;
+  text-transform: uppercase;
+  flex: 0 0 auto;
 }
+.syn-bos { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+.syn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 2px 7px 2px 4px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--c) 42%, transparent);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  color: var(--c);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.syn-chip i { width: 15px; height: 15px; display: block; }
+.syn-chip i svg { width: 100%; height: 100%; display: block; }
+
+.syn-need {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+.syn-info {
+  flex: 0 0 auto;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+  font: 800 12px/1 inherit;
+  font-style: italic;
+  cursor: pointer;
+}
+.syn-info:active { transform: scale(.92); }
+
+/* --- açıklama penceresi --- */
+
+#synSheet {
+  position: fixed;
+  inset: 0;
+  z-index: 23;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8,7,13,.86);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  animation: fadein .22s ease;
+}
+#synSheet[hidden] { display: none; }
+.syn-sheet { max-width: 330px; text-align: left; }
+.syn-sheet .sheet-title { text-align: center; }
+.syn-rule {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 6px 0 10px;
+  text-align: center;
+}
+.syn-sheet .ghost { margin-top: 12px; }
 
 .syn-row {
   display: flex;
@@ -2275,8 +2335,8 @@ button.ghost:active { background: var(--panel); }
     </header>
     <div class="deck-slots" id="deckSlots"></div>
 
-    <!-- Sinerji rehberi. Altı elementin hepsi HER ZAMAN görünür: oyuncu neyi
-         kovalayacağını bilsin, kart değiştirince ne açılıp kapandığını görsün. -->
+    <!-- Sinerji şeridi: tek satır, sembol + sayı. Açıklamalar bilgi
+         düğmesinin arkasındaki pencerede — deste kurarken göz kartlarda olmalı. -->
     <div class="syn" id="deckSyn"></div>
 
     <div class="deck-tools">
@@ -2442,6 +2502,18 @@ button.ghost:active { background: var(--panel); }
   <div class="rfx-word" id="rfxWord"></div>
   <div class="rfx-rank" id="rfxRank"></div>
   <div class="rfx-note" id="rfxNote"></div>
+</div>
+
+<!-- Sinerji açıklamaları. Altı yeteneğin hepsi burada, sahip olmasan bile:
+     oyuncu neyi kovalayacağını bilsin. Deste ekranındaki şerit sadece sembol
+     ve sayı gösteriyor, metin kartların yerini almasın. -->
+<div id="synSheet" hidden>
+  <div class="sheet-card syn-sheet">
+    <div class="sheet-title">Sinerji</div>
+    <div class="syn-rule" id="synRule"></div>
+    <div id="synList"></div>
+    <button id="synClose" class="ghost">kapat</button>
+  </div>
 </div>
 
 <!-- Paket satın alma. Adet seçilebiliyor: coin biriktirip tek seferde
@@ -4903,46 +4975,64 @@ function paintDeck() {
     .join('');
 }
 
+/** Destedeki element sayımı ve şarj eşiği — iki yerde de kullanılıyor. */
+function synDurum() {
+  const elSayim = {};
+  for (const id of draft.filter(Boolean)) {
+    const c = champById(id);
+    if (c) elSayim[c.el] = (elSayim[c.el] || 0) + 1;
+  }
+  const farkli = Object.keys(elSayim).length;
+  return { elSayim, farkli, gerek: CHARGE_BY_SHAPE[farkli] || 3 };
+}
+
 /**
- * Sinerji rehberi — deste ekranının öğretme yüzeyi.
+ * Deste ekranındaki sinerji şeridi — TEK SATIR.
  *
- * Altı elementin hepsi her zaman listeleniyor, sahip olmasan bile: oyuncu neyi
- * kovalayacağını bilsin ve kart değiştirdiğinde ne açılıp kapandığını görsün.
- * Destendekiler açık, diğerleri soluk.
+ * Önce altı yeteneğin açıklaması buradaydı ve kartları ekrandan atıyordu.
+ * Artık sadece sembol + sayı; açıklamalar bilgi düğmesinin arkasındaki
+ * pencerede. Deste kurarken göz kartlarda olmalı.
  */
 function renderSynergy() {
-  const secili = draft.filter(Boolean).map((id) => champById(id)).filter(Boolean);
-  const elSayim = {};
-  for (const c of secili) elSayim[c.el] = (elSayim[c.el] || 0) + 1;
-  const farkli = Object.keys(elSayim).length;
-  const gerek = CHARGE_BY_SHAPE[farkli] || 3;
+  const { elSayim, gerek } = synDurum();
 
-  const sekil = farkli === 0 ? '—'
-    : farkli === 1 ? 'tek element'
-    : farkli === 2 ? '2 + 1' : '3 farklı element';
+  const cipler = Object.keys(ELEMENTS)
+    .filter((el) => elSayim[el])
+    .map((el) => `
+      <span class="syn-chip" style="--c:${ELEMENTS[el].color}" title="${SKILLS[el].ad}">
+        <i>${elemIcon(el)}</i>${elSayim[el]}
+      </span>`).join('');
 
-  const satirlar = Object.keys(ELEMENTS).map((el) => {
+  $('#deckSyn').innerHTML = `
+    <span class="syn-lbl">Sinerji</span>
+    ${cipler || '<span class="syn-bos">kart seç</span>'}
+    <span class="syn-need">bar ${gerek} şarj</span>
+    <button class="syn-info" id="synInfo" aria-label="Sinerji açıklamaları">i</button>`;
+  $('#synInfo').addEventListener('click', openSynSheet);
+}
+
+/** Açıklamalar penceresi: altı yeteneğin hepsi, sahip olmasan bile. */
+function openSynSheet() {
+  const { elSayim, gerek } = synDurum();
+
+  $('#synList').innerHTML = Object.keys(ELEMENTS).map((el) => {
     const adet = elSayim[el] || 0;
     const guclu = adet === 3;
-    const s = SKILLS[el];
     return `
       <div class="syn-row ${adet ? 'on' : ''}" style="--c:${ELEMENTS[el].color}">
         <span class="syn-ico">${elemIcon(el)}</span>
         <span class="syn-body">
-          <b>${s.ad}</b>${guclu ? '<i class="syn-plus">güçlü</i>' : ''}
+          <b>${SKILLS[el].ad}</b>${guclu ? '<i class="syn-plus">güçlü</i>' : ''}
           <span class="syn-txt">${skillMetin(el, guclu)}</span>
         </span>
         <span class="syn-n">${adet ? adet + '×' : ''}</span>
       </div>`;
   }).join('');
 
-  $('#deckSyn').innerHTML = `
-    <div class="syn-head">
-      <b>Sinerji</b>
-      <span>${sekil} · bar ${gerek} şarjda dolar</span>
-    </div>
-    <div class="syn-note">Hasarlı eşleşme 1 şarj · üst üste eşleşme +1 · bar dolunca son eşleştirdiğin elementin yeteneği çıkar</div>
-    ${satirlar}`;
+  $('#synRule').textContent =
+    `Hasarlı eşleşme 1 şarj · üst üste eşleşme +1 · bar ${gerek} şarjda dolar ` +
+    `· dolunca son eşleştirdiğin elementin yeteneği çıkar`;
+  $('#synSheet').hidden = false;
 }
 
 function toggleDraft(id) {
@@ -5122,7 +5212,7 @@ function rankIcon(tier, boy = '1em') {
 
 // Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
 // sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
-const BUILD = 34;
+const BUILD = 35;
 
 const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
 
@@ -5452,6 +5542,10 @@ $('#qtyMinus').addEventListener('click', () => { buyQty--; renderBuySheet(); });
 $('#qtyPlus').addEventListener('click', () => { buyQty++; renderBuySheet(); });
 $('#qtyMax').addEventListener('click', () => { buyQty = affordablePacks(); renderBuySheet(); });
 $('#buyCancel').addEventListener('click', () => { $('#buySheet').hidden = true; });
+$('#synClose').addEventListener('click', () => { $('#synSheet').hidden = true; });
+$('#synSheet').addEventListener('click', (e) => {
+  if (e.target.id === 'synSheet') $('#synSheet').hidden = true;   // dışına dokun, kapan
+});
 $('#buyConfirm').addEventListener('click', () => {
   const alinan = buyPacks(buyQty);
   $('#buySheet').hidden = true;
