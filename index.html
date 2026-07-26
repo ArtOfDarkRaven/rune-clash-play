@@ -1430,33 +1430,29 @@ button.ghost:active { background: var(--panel); }
   color: var(--muted);
   letter-spacing: .02em;
 }
-/* Dolu ve yazılı: önce 24px'lik soluk bir daireydi, ne tıklanabilir olduğu
-   ne de neyi açtığı anlaşılıyordu. Dolgu dokunma hedefini de 44pt'ye taşıyor. */
+/* Ölçüsü lobideki "PAKET AL" ile aynı — önce 24px'lik soluk bir daireydi
+   (anlaşılmıyordu), sonra fazla büyük kaçtı. Dolu ve yazılı olması yeterli. */
 .syn-info {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   border: none;
   border-radius: 9px;
-  padding: 11px 13px;
-  margin: -5px 0;                       /* şeridi yükseltmeden hedefi büyüt */
+  padding: 9px 14px;
   background: linear-gradient(160deg, #cfc6ea, #a99ede);
   color: #1b1630;
-  font: 800 10.5px/1 inherit;
-  letter-spacing: .09em;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
   cursor: pointer;
-  box-shadow: 0 2px 10px -5px #a99ede;
+  box-shadow: 0 2px 10px -4px #a99ede;
 }
 .syn-info i {
-  display: grid;
-  place-items: center;
-  width: 15px; height: 15px;
-  border-radius: 50%;
-  background: #1b1630;
-  color: #cfc6ea;
-  font: 800 10px/1 Georgia, serif;
+  font: 800 11px/1 Georgia, serif;
   font-style: italic;
+  opacity: .75;
 }
 .syn-info:active { transform: scale(.96); }
 
@@ -5226,7 +5222,7 @@ function rankIcon(tier, boy = '1em') {
 
 // Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
 // sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
-const BUILD = 36;
+const BUILD = 37;
 
 const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
 
