@@ -1713,11 +1713,6 @@ button.ghost:active { background: var(--panel); }
   border: 2.5px solid var(--c);
   box-shadow: 0 0 18px 2px var(--c), inset 0 0 14px -2px var(--c);
 }
-.fx-flash {
-  width: 46px; height: 46px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, var(--c) 38%, transparent 70%);
-}
 .fx-bit {
   width: 7px; height: 7px;
   border-radius: 50%;
@@ -2337,7 +2332,22 @@ button.ghost:active { background: var(--panel); }
 /* ---------------- ayarlanabilir sayılar ---------------- */
 
 const CFG = {
-  maxHp:        35,
+  /* Can artık sabit değil, kartın gücüyle ölçekleniyor: can = atk × hpPerAtk
+   * (yapım 41, kullanıcının isteği).
+   *
+   * Bunun güzel yan etkisi: bir birimi düşürmek `hpPerAtk × (hedef.atk /
+   * saldıran.atk)` vuruş sürüyor. Aynaya karşı bu SABİT — yani maç uzunluğu
+   * koleksiyon derinliğinden bağımsız. Eski sabit 35 canda tersiydi: güçlü
+   * deste maçı daha ÇABUK bitiriyordu (35/18 = 1.9 vuruş, 35/11 = 3.2).
+   *
+   * Maç uzunluğu ölçüldü (300'er maç, Platin, ortalama oyuncu):
+   *   3 → 4.30 tahta · 4 → 5.82 · 5 → 7.20 · 6 → 8.55
+   * Sabit 35 canla 3.6 tahtaydı. Kullanıcı "4 veya 5 katı" dedi ve maçların
+   * çabuk bittiğini söyledi; ikisinin DÜŞÜĞÜ seçildi, çünkü 4 bile maçı %62
+   * uzatıyor ve belgelenmiş hedefin (2.5–3.5 tahta) zaten üstüne çıkıyor.
+   * Uzun gelirse tek çevrilecek düğme bu: 3 → 4.3 tahta.
+   * Kazanma oranına etkisi yok (ölçüldü: %47 / %52.7 / %45 / %47.7 — gürültü). */
+  hpPerAtk:      4,
   // Tahta: 6 elementin 5'i çıkar, 8 çift eşitsiz dağıtılır (3 element 2'şer,
   // 2 element 1'er) = 16 kart. Şans "var mı yok mu" değil "kaç tane var".
   boardElements: 5,
@@ -2504,6 +2514,11 @@ let S;
 // app.js savaş bitince bunu çağırır: onBattleEnd('player' | 'ai')
 let onBattleEnd = () => {};
 
+const toUnitHp = (c) => {
+  const can = c.atk * CFG.hpPerAtk;
+  return { ...c, hp: can, maxHp: can };
+};
+
 /** Bir maç başlatır. foe: {name, level, rank, units:[{id,name,el,atk}]} */
 function startBattle(foe, onEnd) {
   onBattleEnd = onEnd || (() => {});
@@ -2520,9 +2535,11 @@ function startBattle(foe, onEnd) {
     foe,
     board: makeBoard([mine, foe.units]),   // tahta iki tarafın elementlerini bilerek kurulur
     aiMem: {},                       // kart indeksi -> element (AI'ın kusurlu hafızası)
+    // Can kartın gücünden türüyor; `maxHp` birimde saklanıyor çünkü artık
+    // her birimin canı farklı ve can barı kendi tavanına göre doluyor.
     teams: {
-      player: mine.map((c)      => ({ ...c, hp: CFG.maxHp })),
-      ai:     foe.units.map((c) => ({ ...c, hp: CFG.maxHp })),
+      player: mine.map(toUnitHp),
+      ai:     foe.units.map(toUnitHp),
     },
   };
 
@@ -2661,9 +2678,9 @@ function syncTeams() {
   for (const side of ['player', 'ai']) {
     for (const c of S.teams[side]) {
       const el = $('#u-' + c.id);
-      const pct = (c.hp / CFG.maxHp) * 100;
+      const pct = (c.hp / c.maxHp) * 100;
       $('.hpfill', el).style.width = pct + '%';
-      $('.hptext', el).textContent = c.hp + ' / ' + CFG.maxHp;
+      $('.hptext', el).textContent = c.hp + ' / ' + c.maxHp;
       el.classList.toggle('low', pct <= 35);
       el.classList.toggle('dead', c.hp === 0);
     }
@@ -3001,8 +3018,12 @@ const kill = (node, after) => setTimeout(() => node.remove(), after);
 /* ---------------- ortak parçalar ---------------- */
 
 // çarpma: genişleyen halka + dışa saçılan parçacıklar
+/* Vuruş efekti: halka + saçılan parçacıklar. Beyaz çekirdek parlaması
+ * KALDIRILDI (yapım 41) — kullanıcının teşhisi: "flash patlaması gibi yanıp
+ * sönüyor, hata gibi görünüyor". Efekt çıkıp kaybolmalı, ekranı çaktırmamalı.
+ * Kartın kendi renginden çıkan ışık zaten yeterli okunuyor. */
 function impact(p, color, opts = {}) {
-  const { count = 9, spread = 46, ringScale = 3.4, shard = false, flash = true } = opts;
+  const { count = 9, spread = 46, ringScale = 3.4, shard = false } = opts;
   const dur = CFG.spellImpact;
 
   const ring = spawn('fx-ring', { ...at(p), '--c': color });
@@ -3014,18 +3035,6 @@ function impact(p, color, opts = {}) {
     { duration: dur, easing: 'cubic-bezier(.2,.7,.3,1)' }
   );
   kill(ring, dur);
-
-  // Beyaz çekirdek parlaması vuruşta iyi, birleşmede kötü: orada rune'la
-  // yarışıp ikisini birden "hata" gibi gösteriyor.
-  if (flash) {
-    const fl = spawn('fx-flash', { ...at(p), '--c': color });
-    fl.animate(
-      [{ transform: 'translate(-50%,-50%) scale(1.6)', opacity: .95 },
-       { transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 }],
-      { duration: dur * 0.55, easing: 'ease-out' }
-    );
-    kill(fl, dur);
-  }
 
   for (let i = 0; i < count; i++) {
     const ang = (Math.PI * 2 * i) / count + Math.random() * 0.5;
@@ -3399,8 +3408,7 @@ function mergeBurst(clientPt, color, element) {
   );
   kill(glyph, dur + 30);
 
-  // beyaz çekirdek yok: sahnenin ortasındaki tek okunacak şey rune olsun
-  impact(p, color, { count: 11, spread: 58, ringScale: 3.6, flash: false });
+  impact(p, color, { count: 11, spread: 58, ringScale: 3.6 });
 }
 
 /**
@@ -3464,10 +3472,17 @@ function shake() {
  * Buradaki tek DOM işi yok: veri ve kayıt. Ekranlar screens.js'te.
  */
 
+/* Dört nadirlik. "Efsanevi" yapım 41'de eklendi: üç kademe, gücün 4–30
+ * aralığına yayılmasını taşıyamıyordu — en üstteki kart ile bir altı arasında
+ * kovalamaya değer bir fark olması gerekiyor.
+ *
+ * Renk kızıl: hiçbir element o tonda değil (ateş turuncu #ff7a45, yıldırım
+ * sarı #ffd049), yani kartın çerçevesiyle yarışmıyor. */
 const RARITY = {
-  common: { name: 'Yaygın',   color: '#8a93a8', pips: 1 },
-  rare:   { name: 'Nadir',    color: '#5aa9e6', pips: 2 },
-  epic:   { name: 'Destansı', color: '#c77dff', pips: 3 },
+  common:    { name: 'Yaygın',   color: '#8a93a8', pips: 1 },
+  rare:      { name: 'Nadir',    color: '#5aa9e6', pips: 2 },
+  epic:      { name: 'Destansı', color: '#c77dff', pips: 3 },
+  legendary: { name: 'Efsanevi', color: '#ff4d6d', pips: 4 },
 };
 
 /* Baskı adedi her kartta aynı: 300.
@@ -3506,41 +3521,52 @@ function betterSerial(a, b) {
 const serialText = (s) =>
   !s ? '' : String(s.n).padStart(3, '0') + '/' + s.run;
 
-// Nadirlik saldırı gücünü belirliyor. Aralık bilerek dar:
-// koleksiyon derinliği dengeyi uçurmasın (rakip zaten güce göre üretiliyor).
-const RARITY_ATK = { common: [11, 12], rare: [15], epic: [18] };
-
+/* Güç 4–30'a yayıldı (yapım 41). Eskiden 11/12/15/18'di: en zayıf ve en güçlü
+ * kart arasında 1.6 kat vardı, iki "yaygın" arasında 1 puan. Kartın üstündeki
+ * sayı hiçbir şey anlatmıyordu ve paket açmanın da bir anlamı kalmıyordu.
+ *
+ * Nadirlik başına bant — her elementte birer tane:
+ *   Yaygın 4–8 · Nadir 11–15 · Destansı 21 · Efsanevi 30
+ *
+ * ELEMENTLER EŞİT: her elementin dört kartının toplamı tam 70. Bant içindeki
+ * sapma (buz yaygını 5, yıldırımınki 8) sayıların elle konmuş hissetmesi için;
+ * toplam eşit olduğu sürece hiçbir element diğerinden güçlü değil. Bunu
+ * bozarsan oyuncu güçlü elemente kayar ve deste kurma seçim olmaktan çıkar.
+ *
+ * Can da buradan geliyor — bkz. `CFG.hpPerAtk`. Yani yüksek sayı hem daha
+ * sert vuruyor hem daha uzun yaşıyor; rakip aynı nadirlik dağılımıyla
+ * üretildiği için (app.js → makeFoe) bu dengeyi bozmuyor. */
 const CHAMPIONS = [
   // ateş
-  { id: 'ember',  name: 'Ember',  title: 'Kıvılcım',      el: 'fire',   rarity: 'common', atk: 11 },
-  { id: 'cinder', name: 'Cinder', title: 'Kül İzi',       el: 'fire',   rarity: 'common', atk: 12 },
-  { id: 'korr',   name: 'Korr',   title: 'Ocak Muhafızı', el: 'fire',   rarity: 'rare',   atk: 15 },
-  { id: 'vulk',   name: 'Vulk',   title: 'Alev Efendisi', el: 'fire',   rarity: 'epic',   atk: 18 },
+  { id: 'ember',  name: 'Ember',  title: 'Kıvılcım',      el: 'fire',   rarity: 'common',    atk:  6 },
+  { id: 'cinder', name: 'Cinder', title: 'Kül İzi',       el: 'fire',   rarity: 'rare',      atk: 13 },
+  { id: 'korr',   name: 'Korr',   title: 'Ocak Muhafızı', el: 'fire',   rarity: 'epic',      atk: 21 },
+  { id: 'vulk',   name: 'Vulk',   title: 'Alev Efendisi', el: 'fire',   rarity: 'legendary', atk: 30 },
   // buz
-  { id: 'cryo',   name: 'Cryo',   title: 'Ayaz',          el: 'ice',    rarity: 'common', atk: 11 },
-  { id: 'hail',   name: 'Hail',   title: 'Dolu',          el: 'ice',    rarity: 'common', atk: 12 },
-  { id: 'sylla',  name: 'Sylla',  title: 'Don Çağıran',   el: 'ice',    rarity: 'rare',   atk: 15 },
-  { id: 'vantr',  name: 'Vantr',  title: 'Kış Sonu',      el: 'ice',    rarity: 'epic',   atk: 18 },
+  { id: 'cryo',   name: 'Cryo',   title: 'Ayaz',          el: 'ice',    rarity: 'common',    atk:  5 },
+  { id: 'hail',   name: 'Hail',   title: 'Dolu',          el: 'ice',    rarity: 'rare',      atk: 14 },
+  { id: 'sylla',  name: 'Sylla',  title: 'Don Çağıran',   el: 'ice',    rarity: 'epic',      atk: 21 },
+  { id: 'vantr',  name: 'Vantr',  title: 'Kış Sonu',      el: 'ice',    rarity: 'legendary', atk: 30 },
   // yıldırım
-  { id: 'jolt',   name: 'Jolt',   title: 'Sarsıntı',      el: 'bolt',   rarity: 'common', atk: 11 },
-  { id: 'zire',   name: 'Zire',   title: 'Ark',           el: 'bolt',   rarity: 'common', atk: 12 },
-  { id: 'volt',   name: 'Volt',   title: 'Gök Gürültüsü', el: 'bolt',   rarity: 'rare',   atk: 15 },
-  { id: 'skarn',  name: 'Skarn',  title: 'Fırtına Başı',  el: 'bolt',   rarity: 'epic',   atk: 18 },
+  { id: 'jolt',   name: 'Jolt',   title: 'Sarsıntı',      el: 'bolt',   rarity: 'common',    atk:  8 },
+  { id: 'zire',   name: 'Zire',   title: 'Ark',           el: 'bolt',   rarity: 'rare',      atk: 11 },
+  { id: 'volt',   name: 'Volt',   title: 'Gök Gürültüsü', el: 'bolt',   rarity: 'epic',      atk: 21 },
+  { id: 'skarn',  name: 'Skarn',  title: 'Fırtına Başı',  el: 'bolt',   rarity: 'legendary', atk: 30 },
   // doğa
-  { id: 'fenn',   name: 'Fenn',   title: 'Bataklık',      el: 'nature', rarity: 'common', atk: 11 },
-  { id: 'sage',   name: 'Sage',   title: 'Kök Bilge',     el: 'nature', rarity: 'common', atk: 12 },
-  { id: 'bram',   name: 'Bram',   title: 'Diken Duvarı',  el: 'nature', rarity: 'rare',   atk: 15 },
-  { id: 'thorn',  name: 'Thorn',  title: 'Orman Kalbi',   el: 'nature', rarity: 'epic',   atk: 18 },
+  { id: 'fenn',   name: 'Fenn',   title: 'Bataklık',      el: 'nature', rarity: 'common',    atk:  4 },
+  { id: 'sage',   name: 'Sage',   title: 'Kök Bilge',     el: 'nature', rarity: 'rare',      atk: 15 },
+  { id: 'bram',   name: 'Bram',   title: 'Diken Duvarı',  el: 'nature', rarity: 'epic',      atk: 21 },
+  { id: 'thorn',  name: 'Thorn',  title: 'Orman Kalbi',   el: 'nature', rarity: 'legendary', atk: 30 },
   // rüzgar
-  { id: 'gale',   name: 'Gale',   title: 'Poyraz',        el: 'wind',   rarity: 'common', atk: 11 },
-  { id: 'zephy',  name: 'Zephy',  title: 'Meltem',        el: 'wind',   rarity: 'common', atk: 12 },
-  { id: 'sirocc', name: 'Sirocc', title: 'Çöl Yeli',      el: 'wind',   rarity: 'rare',   atk: 15 },
-  { id: 'tempra', name: 'Tempra', title: 'Kasırga Gözü',  el: 'wind',   rarity: 'epic',   atk: 18 },
+  { id: 'gale',   name: 'Gale',   title: 'Poyraz',        el: 'wind',   rarity: 'common',    atk:  7 },
+  { id: 'zephy',  name: 'Zephy',  title: 'Meltem',        el: 'wind',   rarity: 'rare',      atk: 12 },
+  { id: 'sirocc', name: 'Sirocc', title: 'Çöl Yeli',      el: 'wind',   rarity: 'epic',      atk: 21 },
+  { id: 'tempra', name: 'Tempra', title: 'Kasırga Gözü',  el: 'wind',   rarity: 'legendary', atk: 30 },
   // kadim
-  { id: 'mote',   name: 'Mote',   title: 'Zerre',         el: 'arcane', rarity: 'common', atk: 11 },
-  { id: 'sigil',  name: 'Sigil',  title: 'Mühür',         el: 'arcane', rarity: 'common', atk: 12 },
-  { id: 'noctis', name: 'Noctis', title: 'Yıldız Okuyan', el: 'arcane', rarity: 'rare',   atk: 15 },
-  { id: 'aeon',   name: 'Aeon',   title: 'Ezel',          el: 'arcane', rarity: 'epic',   atk: 18 },
+  { id: 'mote',   name: 'Mote',   title: 'Zerre',         el: 'arcane', rarity: 'common',    atk:  6 },
+  { id: 'sigil',  name: 'Sigil',  title: 'Mühür',         el: 'arcane', rarity: 'rare',      atk: 13 },
+  { id: 'noctis', name: 'Noctis', title: 'Yıldız Okuyan', el: 'arcane', rarity: 'epic',      atk: 21 },
+  { id: 'aeon',   name: 'Aeon',   title: 'Ezel',          el: 'arcane', rarity: 'legendary', atk: 30 },
 ];
 
 const champById = (id) => CHAMPIONS.find((c) => c.id === id);
@@ -3646,10 +3672,26 @@ const squadPower = () => playerSquad().reduce((s, u) => s + u.atk, 0);
 
 /* ---------------- paketler ---------------- */
 
+/* Çıkma şansı güçle TERS: sayı yükseldikçe kart nadirleşiyor, paketin
+ * heyecanı buradan geliyor.
+ *
+ * Efsanevi %0.7 → paket 3 kart olduğuna göre bir pakette efsanevi görme
+ * ihtimali %2.08, yani **ortalama 48 pakette bir**. Altı efsanevinin hepsini
+ * toplamak ~300 paket sürüyor; 250 maçlık kariyerde ~165 paket açılıyor,
+ * yani koleksiyon artık ilk saatlerde dolmuyor. */
+/* Tek kaynak: sıra ÖNEMLİ, nadirden yaygına doğru birikimli okunuyor. */
+const RARITY_CHANCE = [
+  ['legendary', 0.007],   // ~48 pakette 1
+  ['epic',      0.093],
+  ['rare',      0.300],
+  ['common',    0.600],
+];
+
 function rollRarity() {
-  const r = Math.random();
-  if (r < 0.05) return 'epic';
-  if (r < 0.30) return 'rare';
+  let r = Math.random();
+  for (const [ad, sans] of RARITY_CHANCE) {
+    if ((r -= sans) < 0) return ad;
+  }
   return 'common';
 }
 
@@ -3916,9 +3958,11 @@ const SCREENS = {
 const REVEAL = {
   // Nadir kartta yazı yok: paketten sık çıkıyor, her seferinde uçan etiket
   // vurgu olmaktan çıkıp gürültü oluyordu. Kartın kendi parlaması yeterli.
-  common: { hold: 260, pop: 1.00, label: null,       beam: false },
-  rare:   { hold: 520, pop: 1.09, label: null,       beam: false },
-  epic:   { hold: 800, pop: 1.17, label: 'DESTANSI', beam: true  },
+  common:    { hold: 260, pop: 1.00, label: null,        beam: false },
+  rare:      { hold: 520, pop: 1.09, label: null,        beam: false },
+  epic:      { hold: 800, pop: 1.17, label: 'DESTANSI',  beam: true  },
+  // Efsanevi ~48 pakette bir çıkıyor: en uzun durma ve en büyük sıçrama onun.
+  legendary: { hold: 1150, pop: 1.26, label: 'EFSANEVİ', beam: true  },
 };
 
 const LOAD_TIPS = [
@@ -4356,7 +4400,7 @@ let deckFilter = '';      // '' = tümü, yoksa element anahtarı
 // ELEMENTS'ten türetiliyor: yeni element eklenince burayı güncellemeyi
 // unutmak filtre çipinin ve element sıralamasının sessizce eksik kalmasına yol açıyor.
 const EL_ORDER = Object.keys(ELEMENTS);
-const RAR_ORDER = { epic: 0, rare: 1, common: 2 };
+const RAR_ORDER = { legendary: 0, epic: 1, rare: 2, common: 3 };
 
 const SORTERS = {
   power:   (a, b) => b.atk - a.atk,
@@ -4593,22 +4637,34 @@ function rankIcon(tier, boy = '1em') {
 
 // Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
 // sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
-const BUILD = 40;
+const BUILD = 41;
 
 const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
 
 /* ---------------- rakip üretimi ---------------- */
 
 /**
- * Rakip, oyuncunun destesiyle AYNI nadirlik dağılımını alır.
- * Böylece koleksiyon derinleştikçe denge kaymıyor — güçlü kart toplamak
- * seni güçlendiriyor ama karşına da benzer güçte biri çıkıyor.
- * Elementleri rastgele: eşleşme çeşitliliği kalsın.
+ * Rakip, oyuncunun destesinin AYNI nadirlik dağılımını VE aynı şeklini alır.
+ * Böylece koleksiyon derinleştikçe denge kaymıyor — güçlü kart toplamak seni
+ * güçlendiriyor ama karşına da benzer güçte biri çıkıyor. Elementler rastgele:
+ * eşleşme çeşitliliği kalsın, aynalanan şey güç ve şekil.
+ *
+ * ŞEKİL AYNALAMASI yapım 41'de geldi. Önce rakip HEP 2 elementliydi; tek
+ * elementli oynayan oyuncu hiç ayna görmüyordu. Sabit canla bunun bedeli
+ * küçüktü (arketip farkı 3.4 puan) ama can güce bağlanıp maçlar uzayınca
+ * tek elementli destenin "az ama sert vuruş" dezavantajı büyüdü ve fark
+ * 14 puana çıktı (tek %38 · ikili %52). Şekli aynalamak kapattı.
  */
 function makeFoe() {
-  const rarities = deckChampions().map((c) => c.rarity);
+  const deste = deckChampions();
+  const rarities = deste.map((c) => c.rarity);
   const els = shuffle(Object.keys(ELEMENTS));
-  const shape = [els[0], els[0], els[1]];   // iki elementli comp
+
+  // Oyuncunun kaç farklı elementi varsa rakibinki de o kadar olsun.
+  const farkli = new Set(deste.map((c) => c.el)).size;
+  const shape = farkli === 1 ? [els[0], els[0], els[0]]
+              : farkli === 2 ? [els[0], els[0], els[1]]
+              :                [els[0], els[1], els[2]];
   const used = new Set();
 
   const units = rarities.map((rarity, i) => {
