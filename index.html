@@ -1396,216 +1396,6 @@ button.ghost:active { background: var(--panel); }
   100% { opacity: 0; transform: translate(-50%, -34px) scale(1); }
 }
 
-/* ---------- sinerji rehberi (deste ekranı) ---------- */
-
-/* Şerit tek satır: sembol + sayı. Yüksekliği kartların yerini almamalı. */
-.syn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 8px 0 2px;
-  padding: 6px 7px 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgba(255,255,255,.02);
-}
-.syn-bos { font-size: 10.5px; color: var(--muted); opacity: .7; }
-
-.syn-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex: 0 0 auto;
-  padding: 2px 7px 2px 4px;
-  border-radius: 20px;
-  border: 1px solid color-mix(in srgb, var(--c) 42%, transparent);
-  background: color-mix(in srgb, var(--c) 12%, transparent);
-  color: var(--c);
-  font-size: 11px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-.syn-chip i { width: 15px; height: 15px; display: block; }
-.syn-chip i svg { width: 100%; height: 100%; display: block; }
-
-.syn-need {
-  margin-left: auto;
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: .02em;
-}
-/* Ölçüsü lobideki "PAKET AL" ile aynı — önce 24px'lik soluk bir daireydi
-   (anlaşılmıyordu), sonra fazla büyük kaçtı. Dolu ve yazılı olması yeterli. */
-.syn-info {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: none;
-  border-radius: 9px;
-  padding: 9px 14px;
-  background: linear-gradient(160deg, #cfc6ea, #a99ede);
-  color: #1b1630;
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: .07em;
-  cursor: pointer;
-  box-shadow: 0 2px 10px -4px #a99ede;
-}
-.syn-info:active { transform: scale(.96); }
-
-/* --- açıklama penceresi --- */
-
-#synSheet {
-  position: fixed;
-  inset: 0;
-  z-index: 23;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(8,7,13,.86);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-  animation: fadein .22s ease;
-}
-#synSheet[hidden] { display: none; }
-.syn-sheet { max-width: 330px; text-align: left; }
-.syn-sheet .sheet-title { text-align: center; }
-.syn-rule {
-  font-size: 10.5px;
-  line-height: 1.5;
-  color: var(--muted);
-  margin: 6px 0 10px;
-  text-align: center;
-}
-.syn-sheet .ghost { margin-top: 12px; }
-
-.syn-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 0;
-  border-top: 1px solid rgba(255,255,255,.045);
-  opacity: .38;                      /* destende yoksa soluk ama OKUNUR */
-}
-.syn-row.on { opacity: 1; }
-.syn-ico { width: 17px; height: 17px; flex: 0 0 auto; color: var(--c); }
-.syn-ico svg { width: 100%; height: 100%; display: block; }
-
-.syn-body { flex: 1 1 auto; min-width: 0; }
-.syn-body b { font-size: 11.5px; color: var(--c); letter-spacing: .02em; }
-.syn-txt {
-  display: block;
-  font-size: 10.5px;
-  line-height: 1.4;
-  color: var(--muted);
-  margin-top: 1px;
-}
-.syn-plus {
-  font-style: normal;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  color: var(--gold);
-  margin-left: 5px;
-  padding: 1px 5px;
-  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
-  border-radius: 5px;
-}
-.syn-n {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--c);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------- yetenek şarj barı ---------- */
-
-/* İki taraf da görüyor. Rakibinki dolarken izliyorsun — büyük etkiler
-   önceden haber verilmiş oluyor, sürpriz gibi hissettirmiyor. */
-.charge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  width: 100%;
-  margin: 5px 0 0;
-  padding: 5px 8px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: rgba(255,255,255,.02);
-  font: inherit;
-  color: var(--muted);
-  text-align: left;
-}
-.charge.mine { margin: 5px 0; cursor: pointer; }
-.charge.mine:disabled { cursor: default; }
-
-/* Üç bölme. Dolan bölme elementin rengini alıyor. */
-.charge i {
-  flex: 1 1 0;
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(255,255,255,.09);
-  transition: background .25s ease, box-shadow .25s ease;
-}
-.charge i.on {
-  background: var(--c);
-  box-shadow: 0 0 7px -1px var(--c);
-}
-
-.charge-txt {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  font-variant-numeric: tabular-nums;
-  min-width: 26px;
-  text-align: right;
-}
-.charge-tag {
-  flex: 0 0 auto;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: var(--c);
-  opacity: .85;
-}
-
-/* Hazır: kendi barın davet ediyor, rakibinki uyarıyor. */
-.charge.ready {
-  border-color: color-mix(in srgb, var(--c) 55%, transparent);
-  background: color-mix(in srgb, var(--c) 10%, transparent);
-}
-.charge.ready .charge-txt { color: var(--c); }
-.charge.mine.ready:not(:disabled) { animation: chargePulse 1.6s ease-in-out infinite; }
-.charge.mine.ready:not(:disabled):active { transform: scale(.98); }
-
-@keyframes chargePulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 30%, transparent); }
-  50%      { box-shadow: 0 0 12px 1px color-mix(in srgb, var(--c) 26%, transparent); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .charge.mine.ready:not(:disabled) { animation: none; }
-}
-
-/* Kasırga'nın açtığı kart: yüzü açık ama çevrilmiş değil, hâlâ seçilebilir.
-   İnce bir rüzgar halkası bunu normal çevirmeden ayırıyor. */
-.card.shown .card-inner {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wind) 55%, transparent),
-              0 0 14px -4px var(--wind);
-  border-radius: 9px;
-}
-
-/* Donmuş vuruş — buz yeteneği hasarı kesince saldıran bunu gösteriyor. */
-.unit.frozen-hit {
-  filter: saturate(.35) brightness(1.2);
-  box-shadow: 0 0 16px -4px #7fd8ea;
-}
-
 /* ---------- board ---------- */
 
 /* ---------- rune kartları ---------- */
@@ -2341,10 +2131,6 @@ button.ghost:active { background: var(--panel); }
     </header>
     <div class="deck-slots" id="deckSlots"></div>
 
-    <!-- Sinerji şeridi: tek satır, sembol + sayı. Açıklamalar bilgi
-         düğmesinin arkasındaki pencerede — deste kurarken göz kartlarda olmalı. -->
-    <div class="syn" id="deckSyn"></div>
-
     <div class="deck-tools">
       <div class="seg" id="deckSort">
         <button data-sort="power" class="on">Güç</button>
@@ -2467,15 +2253,9 @@ button.ghost:active { background: var(--panel); }
 
       <section class="team-strip" id="aiTeam" aria-label="Rakip takım"></section>
 
-      <!-- Rakibin şarj barı görünür: büyük etkiler önceden haber verilsin,
-           adaletsiz hissettirmesin. -->
-      <div class="charge foe" id="foeCharge" aria-label="Rakip yetenek barı"></div>
-
       <section id="boardWrap">
         <div id="board" role="grid" aria-label="Rune tahtası"></div>
       </section>
-
-      <button class="charge mine" id="myCharge" aria-label="Yetenek barı"></button>
 
       <section class="team-strip mine" id="playerTeam" aria-label="Senin takımın"></section>
 
@@ -2508,18 +2288,6 @@ button.ghost:active { background: var(--panel); }
   <div class="rfx-word" id="rfxWord"></div>
   <div class="rfx-rank" id="rfxRank"></div>
   <div class="rfx-note" id="rfxNote"></div>
-</div>
-
-<!-- Sinerji açıklamaları. Altı yeteneğin hepsi burada, sahip olmasan bile:
-     oyuncu neyi kovalayacağını bilsin. Deste ekranındaki şerit sadece sembol
-     ve sayı gösteriyor, metin kartların yerini almasın. -->
-<div id="synSheet" hidden>
-  <div class="sheet-card syn-sheet">
-    <div class="sheet-title">Sinerji</div>
-    <div class="syn-rule" id="synRule"></div>
-    <div id="synList"></div>
-    <button id="synClose" class="ghost">kapat</button>
-  </div>
 </div>
 
 <!-- Paket satın alma. Adet seçilebiliyor: coin biriktirip tek seferde
@@ -2753,10 +2521,9 @@ function startBattle(foe, onEnd) {
     board: makeBoard([mine, foe.units]),   // tahta iki tarafın elementlerini bilerek kurulur
     aiMem: {},                       // kart indeksi -> element (AI'ın kusurlu hafızası)
     teams: {
-      player: mine.map((c)      => ({ ...c, hp: CFG.maxHp, burn: null })),
-      ai:     foe.units.map((c) => ({ ...c, hp: CFG.maxHp, burn: null })),
+      player: mine.map((c)      => ({ ...c, hp: CFG.maxHp })),
+      ai:     foe.units.map((c) => ({ ...c, hp: CFG.maxHp })),
     },
-    ...freshSkillState(),          // şarj barları ve bekleyen etkiler (skills.js)
   };
 
   $('#log').innerHTML = '';
@@ -2767,7 +2534,6 @@ function startBattle(foe, onEnd) {
 
   buildTeams();
   syncHeader();
-  syncSkills();
   addLog('Bir rune çifti bul — o elementteki karakterlerin saldırsın.', 'sys');
 
   // kartlar dağıtılırken tıklama kapalı
@@ -2886,10 +2652,7 @@ const cardNode = (i) => $(`.card[data-i="${i}"]`, $('#board'));
 function syncBoard() {
   const cards = $('#board').querySelectorAll('.card');
   S.board.forEach((c, i) => {
-    // `shown`: Kasırga'nın açtığı kart. Çevrilmiş sayılmıyor (hâlâ seçilebilir)
-    // ama yüzü açık duruyor — eşleşene kadar öyle kalıyor.
-    cards[i].classList.toggle('up', c.up || !!c.shown);
-    cards[i].classList.toggle('shown', !!c.shown && !c.up);
+    cards[i].classList.toggle('up', c.up);
     cards[i].classList.toggle('matched', c.matched);
   });
 }
@@ -2913,88 +2676,6 @@ function syncHeader() {
   const mine = S.turn === 'player';
   b.textContent = mine ? 'Senin sıran' : 'Rakip düşünüyor…';
   b.className = mine ? 'turn-player' : 'turn-ai';
-}
-
-/* ---------------- yetenek barı ---------------- */
-
-function syncSkills() {
-  for (const [side, sel] of [['player', '#myCharge'], ['ai', '#foeCharge']]) {
-    const node = $(sel);
-    if (!node) continue;
-    const c = S.skill[side];
-    const el = c.el || (S.teams[side].find((u) => u.hp > 0) || {}).el || 'arcane';
-    const renk = ELEMENTS[el] ? ELEMENTS[el].color : 'var(--muted)';
-    const s = c.el ? SKILLS[c.el] : null;
-
-    const gerek = chargeNeed(side);        // deste şekline göre değişiyor
-    node.style.setProperty('--c', renk);
-    node.classList.toggle('ready', c.hazir);
-    node.innerHTML =
-      Array.from({ length: gerek }, (_, i) =>
-        `<i class="${i < c.sarj ? 'on' : ''}"></i>`).join('') +
-      `<span class="charge-txt">${c.hazir && s
-        ? (side === 'player' ? `${s.ad} — kullan` : `${s.ad} hazır`)
-        : `${c.sarj}/${gerek}`}</span>`;
-
-    // Etkin durumlar rozet olarak: oyuncu neyin açık olduğunu görsün.
-    const e = S.effects[side];
-    const rozet = [];
-    if (e.frozen) rozet.push('donmuş');
-    if (e.spare)  rozet.push(`sağanak ${e.spare}`);
-    if (e.echo)   rozet.push(`yankı ×${e.echo}`);
-    if (rozet.length) node.innerHTML += `<span class="charge-tag">${rozet.join(' · ')}</span>`;
-  }
-  if ($('#myCharge')) $('#myCharge').disabled = !(S.skill.player.hazir && S.turn === 'player' && !S.busy && !S.over);
-}
-
-/** Yeteneği kullanır ve görsel karşılığını oynatır. */
-async function useSkill(side) {
-  if (!skillReady(side) || S.over) return;
-  const r = castSkill(side);
-  if (!r) return;
-
-  addLog(`${sideName(side)}: ${r.ad}${r.guclu ? ' (güçlü)' : ''}!`, side);
-  syncSkills(); syncTeams(); syncBoard();
-
-  // Kasırga (rüzgar) tahtaya dokunuyor, burada oynatılıyor.
-  const kacCift = S.effects[side].peek;
-  if (kacCift > 0) {
-    S.effects[side].peek = 0;
-    for (let k = 0; k < kacCift; k++) revealOwnPair(side);
-  }
-
-  checkOver();
-  syncHeader();
-}
-
-/**
- * Kasırga: destendeki bir elementin çiftini KALICI açar — eşleşene kadar
- * açık kalıyor.
- *
- * Önce süreli bir bakıştı. İki sorunu vardı: oyuncu ezberleyemezse boşa
- * gidiyordu (bitirici boşa düşmemeli kuralına aykırı), ve süre `CFG` dışında
- * olduğu için hızlı modda hiç çalışmıyordu — yani simülasyonda ölçülemiyordu.
- * Kalıcı açmak ikisini birden çözüyor.
- */
-function revealOwnPair(side) {
-  const benim = new Set(S.teams[side].filter((u) => u.hp > 0).map((u) => u.el));
-  const grup = {};
-  S.board.forEach((c, i) => {
-    if (c.matched || c.up || c.shown) return;
-    (grup[c.el] = grup[c.el] || []).push(i);
-  });
-  const ciftler = Object.entries(grup).filter(([, a]) => a.length >= 2);
-  // Önce kendi elementin; yoksa herhangi bir çift — boşa düşmesin.
-  const secim = ciftler.find(([el]) => benim.has(el)) || ciftler[0];
-  if (!secim) return null;
-
-  const [x, y] = secim[1];
-  S.board[x].shown = S.board[y].shown = true;
-  // Açık kart iki taraf da görüyor: gerçek bir maçta da öyle olurdu.
-  aiRemember(x, S.board[x].el);
-  aiRemember(y, S.board[y].el);
-  syncBoard();
-  return [x, y];
 }
 
 function addLog(text, kind = '') {
@@ -3053,14 +2734,7 @@ async function resolve(side) {
   if (ca.el !== cb.el) {
     ca.up = cb.up = false;
     syncBoard();
-    // Sağanak (yıldırım): ıskalama sırayı devretmiyor.
-    if (S.effects[side].spare > 0) {
-      S.effects[side].spare--;
-      addLog(`${sideName(side)}: Sağanak — ıskalama sayılmadı.`, side);
-      syncSkills();
-    } else {
-      passTurn(side);
-    }
+    passTurn(side);
     syncHeader();
     return;
   }
@@ -3074,19 +2748,11 @@ async function resolve(side) {
 
   if (dealt === 0) {
     // boşa giden eşleşme: kartlar kalktı ama sıra devrediliyor
-    if (CHARGE_ON_EMPTY) { addCharge(side, ca.el, false); syncSkills(); }
     passTurn(side);
-  } else {
-    // Şarj: sadece HASARLI eşleşme. Zincirin 2+.'si bonus veriyor.
-    const zincirli = S.chain >= 1;
-    addCharge(side, ca.el, zincirli);
-    syncSkills();
-
-    if (++S.chain >= CFG.maxChain) {
-      // hasar veren eşleşme sırayı korur — ama sonsuza kadar değil
-      addLog(`${CFG.maxChain}'lü zincir doldu, sıra geçti.`, 'sys');
-      passTurn(side);
-    }
+  } else if (++S.chain >= CFG.maxChain) {
+    // hasar veren eşleşme sırayı korur — ama sonsuza kadar değil
+    addLog(`${CFG.maxChain}'lü zincir doldu, sıra geçti.`, 'sys');
+    passTurn(side);
   }
 
   checkOver();
@@ -3097,14 +2763,6 @@ async function resolve(side) {
 function passTurn(side) {
   S.turn = other(side);
   S.chain = 0;
-
-  // Yanma sırası başlayan tarafta işliyor — "tur başında hasar alır".
-  const yanan = tickBurn(S.turn);
-  if (yanan > 0) {
-    addLog(`${sideName(S.turn)}: yanma ${yanan} hasar.`, S.turn);
-    syncTeams();
-    checkOver();
-  }
 }
 
 async function doAttack(side, el) {
@@ -3117,37 +2775,14 @@ async function doAttack(side, el) {
     return 0;
   }
 
-  // Dondur (buz): eşleşme sayılıyor — sıra korunuyor, şarj geliyor — ama
-  // vuruş düşmüyor. Rakip normal oynadığı için istihbarat kaybı da yok.
-  if (S.effects[side].frozen > 0) {
-    S.effects[side].frozen--;
-    addLog(`${sideName(side)}: ${elName} çifti donduruldu — hasar yok.`, side);
-    syncSkills();
-    for (const a of attackers) {
-      const el = $('#u-' + a.id);
-      if (el) { el.classList.add('frozen-hit'); setTimeout(() => el.classList.remove('frozen-hit'), 700); }
-    }
-    return attackers.reduce((t, a) => t + a.atk, 0);   // 0 değil: eşleşme geçerli
-  }
-
-  // Yankı (kadim): aynı eşleşme birden çok kez vuruyor.
-  const kat = S.effects[side].echo > 0 ? S.effects[side].echo : 1;
-  if (kat > 1) {
-    S.effects[side].echo = 0;
-    addLog(`${sideName(side)}: Yankı — vuruş ${kat} kez.`, side);
-    syncSkills();
-  }
-
   addLog(`${sideName(side)}: ${elName} çifti! ${attackers.length} karakter saldırıyor.`, side);
 
   let total = 0;
-  for (let k = 0; k < kat; k++) {
-    for (const a of attackers) {
-      const target = foes.find((f) => f.hp > 0);
-      if (!target) break;
-      await strike(a, target);
-      total += a.atk;
-    }
+  for (const a of attackers) {
+    const target = foes.find((f) => f.hp > 0);
+    if (!target) break;
+    await strike(a, target);
+    total += a.atk;
   }
   return total;
 }
@@ -3269,14 +2904,6 @@ async function aiTurn() {
   const keys = Object.keys(S.aiMem);
   if (keys.length && Math.random() < CFG.aiForget) delete S.aiMem[pickRandom(keys)];
 
-  // Barı dolduysa turun başında kullanıyor — oyuncu barı görüyor,
-  // yani sürpriz değil, haber verilmiş bir hamle.
-  if (skillReady('ai')) {
-    await sleep(CFG.aiThink);
-    await useSkill('ai');
-    if (S.over) return;
-  }
-
   await sleep(CFG.aiThink);
   const picks = aiPick();
 
@@ -3303,212 +2930,7 @@ $('#board').addEventListener('click', (e) => {
   if (card) tapCard(+card.dataset.i);
 });
 
-$('#myCharge').addEventListener('click', async () => {
-  if (S.busy || S.over || S.turn !== 'player') return;
-  S.busy = true;
-  try { await useSkill('player'); } finally { S.busy = false; syncSkills(); }
-});
-
 // Ekran akışı ve maç başlatma app.js'te.
-
-
-/* ===== skills.js ===== */
-/* Rune Clash — element yetenekleri (sinerji)
- *
- * Sistem tek cümle: HASARLI eşleşme başına 1 şarj, zincir (2. üst üste)
- * +1 bonus, 3 şarj dolunca o elementin yeteneği gönderilebilir.
- *
- * Boş eşleşme (destende olmayan element) şarj vermiyor — zaten sırayı da
- * devrediyor, ödüllendirilmesi ters teşvik olurdu.
- *
- * ŞARJ HIZI ÖLÇÜLDÜ (200'er maç, ortalama rakip):
- *   hafıza 0.55 → 4.13 hasarlı eşleşme + 0.93 zincir = 5.1 şarj → ~1.7 kullanım
- *   hafıza 0.70 → 5.03 + 1.38 = 6.4 şarj → ~2.1 kullanım
- *   hafıza 1.00 → 5.64 + 1.56 = 7.2 şarj → ~2.4 kullanım
- *
- * GÜÇ BÜTÇESİ: maçta ~5 saldırı var, her biri kabaca 25 hasar. Yetenek maçta
- * ~2 kez çıktığına göre bir kullanım **bir saldırı değerinde** olmalı (~25).
- * Daha fazlası verilirse oyun "kart çevirme" olmaktan çıkıp "yetenek bekleme"ye
- * döner. Aşağıdaki sayılar bu bütçeye göre seçildi.
- *
- * Tek elementli deste (üç şampiyon da aynı) yeteneği GÜÇLENMİŞ kullanır:
- * esnekliği yok, karşılığında gücü var.
- */
-
-/* Şarj eşiği DESTE ŞEKLİNE bağlı.
- *
- * Ölçüm (800'er maç): tek elementli deste maçta 0.35 kez yetenek kullanıyordu,
- * dağıtılmış 1.76. Sebep şarj hasarlı eşleşmeden geliyor, tek element ise
- * tahtadaki 5 elementin yalnızca 1'inde hasar veriyor. Sistem arketip farkını
- * kapatmak için kurulmuştu ama açıyordu (12.5 → 17.3 puan).
- *
- * Eşiği element sayısına bağlamak kullanım hızını doğrudan eşitliyor. */
-const CHARGE_BY_SHAPE = { 1: 2, 2: 3, 3: 4 };
-let CHARGE_SCALE = true;    // `false`: hepsi 3 (ölçüm karşılaştırması için)
-let CHARGE_NEED = 3;        // ölçekleme kapalıyken kullanılan sabit
-
-/** Bu tarafın barı kaç şarjda dolar — destesindeki farklı element sayısına göre. */
-function chargeNeed(side) {
-  if (!CHARGE_SCALE) return CHARGE_NEED;
-  const n = new Set(S.teams[side].map((u) => u.el)).size;
-  return CHARGE_BY_SHAPE[n] || 3;
-}
-
-const CHAIN_BONUS = 1;      // zincirin 2. eşleşmesinden itibaren ek şarj
-
-/* Boş eşleşme (destende olmayan element) şarj versin mi?
- * Ölçümle karar verildi — bkz. docs/fikirler.md. `let`: simülasyonda
- * ikisi de denenebilsin diye. */
-let CHARGE_ON_EMPTY = false;
-
-/* Her yetenek: ad, kısa açıklama (arayüzde birebir bu yazıyor) ve etkisi.
- * `guclu` alanı üç şampiyonun da o elementte olduğu destede geçerli. */
-const SKILLS = {
-  fire: {
-    ad: 'Alev Fırtınası',
-    metin: 'Rakip takımın tamamı 2 tur yanar.',
-    metinGuclu: 'Rakip takımın tamamı 2 tur daha şiddetli yanar.',
-    yanma: 6, yanmaGuclu: 9, tur: 2,      // 3 hedef × 6 × 2 tur ÷ paylaşım ≈ bütçe
-  },
-  /* Buz'a hasar eklendi. Saf engelleme ölçümde kaybediyordu (%32) ve maçı
-     5.07 tahtaya uzatıp kilitliyordu: engellenen 25 hasar, harcanan bir
-     kullanımla başabaş kalıyor ama tempo kaybettiriyor. Hasar hem dengeyi
-     hem kilitlenmeyi çözüyor. Üst üste binme de sınırlı. */
-  ice: {
-    ad: 'Dondur',
-    metin: 'Rakibin sıradaki eşleşmesi hasar vermez, rakip takım 7 hasar alır.',
-    metinGuclu: 'Rakibin sıradaki eşleşmesi hasar vermez, rakip takım 11 hasar alır.',
-    adet: 1, adetGuclu: 1, hasar: 7, hasarGuclu: 11, ustSinir: 2,
-  },
-  bolt: {
-    ad: 'Sağanak',
-    metin: 'Sıradaki 3 ıskalaman sırayı devretmez.',
-    metinGuclu: 'Sıradaki 4 ıskalaman sırayı devretmez.',
-    adet: 3, adetGuclu: 4,
-  },
-  /* Doğa yayarak iyileştiriyordu ve ölçümde en kötüsüydü (%24). Sorun miktar
-     değil dağıtım: tam candakine yapılan iyileştirme çöpe gidiyor. Artık tek
-     hedefe — ölmeye en yakın olana — yoğunlaşıyor. */
-  nature: {
-    ad: 'Yeniden Doğuş',
-    metin: 'En az canı olan şampiyonun 25 iyileşir.',
-    metinGuclu: 'En az canı olan şampiyonun 35 iyileşir.',
-    can: 25, canGuclu: 35,
-  },
-  wind: {
-    ad: 'Kasırga',
-    metin: 'Destendeki bir elementin çifti açılır ve açık kalır.',
-    metinGuclu: 'Destendeki iki çift açılır ve açık kalır.',
-    adet: 1, adetGuclu: 2,
-  },
-  arcane: {
-    ad: 'Yankı',
-    metin: 'Sıradaki hasarlı eşleşmen iki kez vurur.',
-    metinGuclu: 'Sıradaki hasarlı eşleşmen üç kez vurur.',
-    kat: 2, katGuclu: 3,
-  },
-};
-
-/** Bu tarafın destesinin tamamı aynı elementse yetenek güçlenir. */
-function skillGuclu(side, el) {
-  const takim = S.teams[side];
-  return takim.length > 0 && takim.every((u) => u.el === el);
-}
-
-/** Arayüzde gösterilecek açıklama — deste ekranı ve savaş aynı metni kullanıyor. */
-function skillMetin(el, guclu = false) {
-  const s = SKILLS[el];
-  return guclu ? s.metinGuclu : s.metin;
-}
-
-/* ---------------- şarj ---------------- */
-
-/** Hasarlı eşleşme sonrası çağrılıyor. `zincirli` = zincirin 2+. eşleşmesi. */
-function addCharge(side, el, zincirli) {
-  const c = S.skill[side];
-  if (c.hazir) return;                     // dolu bar beklerken şarj birikmiyor
-  const gerek = chargeNeed(side);
-  c.sarj += 1 + (zincirli ? CHAIN_BONUS : 0);
-  c.el = el;                               // yetenek SON eşleşmenin elementi
-  if (c.sarj >= gerek) { c.sarj = gerek; c.hazir = true; }
-}
-
-const skillReady = (side) => S.skill[side].hazir;
-
-/* ---------------- etkiler ---------------- */
-
-/**
- * Yeteneği kullanır. Sadece durumu değiştiriyor — animasyon ve DOM game.js'te,
- * böylece hızlı simülasyon buradan sorunsuz geçiyor.
- * Döndürdüğü metin olay günlüğüne yazılıyor.
- */
-function castSkill(side) {
-  const c = S.skill[side];
-  if (!c.hazir) return null;
-
-  const el = c.el;
-  const s = SKILLS[el];
-  const guclu = skillGuclu(side, el);
-  const rakip = other(side);
-  c.sarj = 0; c.hazir = false; c.el = null;
-
-  const durum = S.effects[side];
-  const rDurum = S.effects[rakip];
-
-  switch (el) {
-    case 'fire': {
-      const miktar = guclu ? s.yanmaGuclu : s.yanma;
-      for (const u of S.teams[rakip]) if (u.hp > 0) u.burn = { miktar, tur: s.tur };
-      break;
-    }
-    case 'ice': {
-      // Üst sınır: üst üste binerse maç bitmiyor (ölçüldü, 5.07 tahta).
-      rDurum.frozen = Math.min(s.ustSinir, rDurum.frozen + (guclu ? s.adetGuclu : s.adet));
-      const h = guclu ? s.hasarGuclu : s.hasar;
-      for (const u of S.teams[rakip]) if (u.hp > 0) u.hp = Math.max(0, u.hp - h);
-      break;
-    }
-    case 'bolt':
-      durum.spare += guclu ? s.adetGuclu : s.adet;
-      break;
-    case 'nature': {
-      const can = guclu ? s.canGuclu : s.can;
-      // Yayarak değil, ölmeye en yakın olana. Tam candakine yapılan iyileştirme
-      // çöpe gidiyordu; yoğunlaştırınca aynı miktar çok daha değerli.
-      const hedef = S.teams[side].filter((u) => u.hp > 0).sort((a, b) => a.hp - b.hp)[0];
-      if (hedef) hedef.hp = Math.min(CFG.maxHp, hedef.hp + can);
-      break;
-    }
-    case 'wind':
-      durum.peek = guclu ? s.adetGuclu : s.adet;   // game.js kaç çift açacağını okuyor
-      break;
-    case 'arcane':
-      durum.echo = guclu ? s.katGuclu : s.kat;
-      break;
-  }
-
-  return { ad: s.ad, el, guclu };
-}
-
-/** Tur başında yanma işler. Ölenleri game.js kontrol ediyor. */
-function tickBurn(side) {
-  let toplam = 0;
-  for (const u of S.teams[side]) {
-    if (u.hp <= 0 || !u.burn) continue;
-    u.hp = Math.max(0, u.hp - u.burn.miktar);
-    toplam += u.burn.miktar;
-    if (--u.burn.tur <= 0) u.burn = null;
-  }
-  return toplam;
-}
-
-/** Savaş başlarken sıfır durum. */
-const freshSkillState = () => ({
-  skill:   { player: { sarj: 0, el: null, hazir: false },
-             ai:     { sarj: 0, el: null, hazir: false } },
-  effects: { player: { frozen: 0, spare: 0, echo: 0, peek: 0 },
-             ai:     { frozen: 0, spare: 0, echo: 0, peek: 0 } },
-});
 
 
 /* ===== fx.js ===== */
@@ -4988,76 +4410,11 @@ function paintDeck() {
     })
     .join('');
 
-  renderSynergy();
-
   // Koleksiyon kartları da tam sürüm: seçili olanlarla aynı görünsünler.
   $('#deckGrid').innerHTML = shown
     .map((c) => champCardHtml(c, { pick: draft.includes(c.id) ? '✓' : '' }))
     .join('');
 }
-
-/** Destedeki element sayımı ve şarj eşiği — iki yerde de kullanılıyor. */
-function synDurum() {
-  const elSayim = {};
-  for (const id of draft.filter(Boolean)) {
-    const c = champById(id);
-    if (c) elSayim[c.el] = (elSayim[c.el] || 0) + 1;
-  }
-  const farkli = Object.keys(elSayim).length;
-  return { elSayim, farkli, gerek: CHARGE_BY_SHAPE[farkli] || 3 };
-}
-
-/**
- * Deste ekranındaki sinerji şeridi — TEK SATIR.
- *
- * Önce altı yeteneğin açıklaması buradaydı ve kartları ekrandan atıyordu.
- * Artık sadece sembol + sayı; açıklamalar bilgi düğmesinin arkasındaki
- * pencerede. Deste kurarken göz kartlarda olmalı.
- */
-function renderSynergy() {
-  const { elSayim, gerek } = synDurum();
-
-  const cipler = Object.keys(ELEMENTS)
-    .filter((el) => elSayim[el])
-    .map((el) => `
-      <span class="syn-chip" style="--c:${ELEMENTS[el].color}" title="${SKILLS[el].ad}">
-        <i>${elemIcon(el)}</i>${elSayim[el]}
-      </span>`).join('');
-
-  $('#deckSyn').innerHTML = `
-    ${cipler || '<span class="syn-bos">kart seç</span>'}
-    <span class="syn-need">${gerek} şarj</span>
-    <button class="syn-info" id="synInfo">SİNERJİ</button>`;
-  $('#synInfo').addEventListener('click', (e) => { e.stopPropagation(); openSynSheet(); });
-}
-
-/** Açıklamalar penceresi: altı yeteneğin hepsi, sahip olmasan bile. */
-function openSynSheet() {
-  const { elSayim, gerek } = synDurum();
-
-  $('#synList').innerHTML = Object.keys(ELEMENTS).map((el) => {
-    const adet = elSayim[el] || 0;
-    const guclu = adet === 3;
-    return `
-      <div class="syn-row ${adet ? 'on' : ''}" style="--c:${ELEMENTS[el].color}">
-        <span class="syn-ico">${elemIcon(el)}</span>
-        <span class="syn-body">
-          <b>${SKILLS[el].ad}</b>${guclu ? '<i class="syn-plus">güçlü</i>' : ''}
-          <span class="syn-txt">${skillMetin(el, guclu)}</span>
-        </span>
-        <span class="syn-n">${adet ? adet + '×' : ''}</span>
-      </div>`;
-  }).join('');
-
-  $('#synRule').textContent =
-    `Hasarlı eşleşme 1 şarj · üst üste eşleşme +1 · bar ${gerek} şarjda dolar ` +
-    `· dolunca son eşleştirdiğin elementin yeteneği çıkar`;
-  $('#synSheet').hidden = false;
-  // Açılış tıklaması arka plana ulaşıp pencereyi anında kapatabiliyor.
-  synAcilis = Date.now();
-}
-let synAcilis = 0;
-const synKapanabilir = () => Date.now() - synAcilis > 250;
 
 function toggleDraft(id) {
   const at = draft.indexOf(id);
@@ -5236,7 +4593,7 @@ function rankIcon(tier, boy = '1em') {
 
 // Telefonda hangi sürümün yüklendiğini görebilmek için — iOS ana ekran uygulaması
 // sayfayı askıda tutabiliyor ve eski kod çalışmaya devam edebiliyor.
-const BUILD = 39;
+const BUILD = 40;
 
 const myLevel = () => 14 + Math.floor((SAVE.wins + SAVE.losses) / 3);
 
@@ -5566,11 +4923,6 @@ $('#qtyMinus').addEventListener('click', () => { buyQty--; renderBuySheet(); });
 $('#qtyPlus').addEventListener('click', () => { buyQty++; renderBuySheet(); });
 $('#qtyMax').addEventListener('click', () => { buyQty = affordablePacks(); renderBuySheet(); });
 $('#buyCancel').addEventListener('click', () => { $('#buySheet').hidden = true; });
-$('#synClose').addEventListener('click', () => { $('#synSheet').hidden = true; });
-$('#synSheet').addEventListener('click', (e) => {
-  // dışına dokun, kapan — ama açılış tıklamasının kendisiyle değil
-  if (e.target.id === 'synSheet' && synKapanabilir()) $('#synSheet').hidden = true;
-});
 $('#buyConfirm').addEventListener('click', () => {
   const alinan = buyPacks(buyQty);
   $('#buySheet').hidden = true;
